@@ -6,13 +6,13 @@
 # Pre-downloads the sentence-transformer model at build time.
 # ---------------------------------------------------------------------------
 
-FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim AS base
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS base
 
 WORKDIR /app
 
 # System deps
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc && \
+    apt-get install -y --no-install-recommends gcc curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependency manifests first (cache layer)
