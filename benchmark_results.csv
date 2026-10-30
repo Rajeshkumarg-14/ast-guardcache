@@ -1,0 +1,5 @@
+Mode,Exec Accuracy %,Tenant Leak Rate %,Cache Hit Ratio %,Avg Latency ms,P95 Latency ms
+Zero-Shot,100.0,50.0,0.0,0.1,0.5
+Hybrid RAG,100.0,50.0,0.0,7.9,10.0
+RAG + AST,100.0,0.0,0.0,9.8,15.4
+AST-GuardCache,100.0,0.0,0.0,137.1,633.7
