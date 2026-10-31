@@ -246,6 +246,11 @@ FORBIDDEN = [
     "SELECT * FROM aux.students",
     "WITH students AS (SELECT * FROM students) SELECT * FROM students",
     "WITH tenants AS (SELECT 1 AS id) SELECT * FROM tenants",
+    # CTE defined in an inner scope must not hide a same-named table outside it
+    "SELECT * FROM (WITH sqlite_master AS (SELECT 1 AS n) SELECT * FROM sqlite_master) AS x, sqlite_master",
+    "SELECT * FROM (WITH c AS (SELECT 1 AS n) SELECT * FROM c) AS x, c",
+    "SELECT * FROM (WITH sqlite_schema AS (SELECT 1 AS n) SELECT * FROM sqlite_schema) AS x",
+    "SELECT (SELECT COUNT(*) FROM (WITH pragma_x AS (SELECT 1) SELECT * FROM pragma_x)) AS n",
     "SELECT * FROM students AS s WHERE s.id IN (SELECT id FROM secret_table)",
     "SELECT nope.name FROM students",
     "THIS IS NOT SQL",

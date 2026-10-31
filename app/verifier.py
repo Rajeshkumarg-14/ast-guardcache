@@ -37,6 +37,24 @@ _ALLOWED_ANONYMOUS_FUNCS = {"julianday", "printf", "instr", "total", "unixepoch"
 # Column each scoped table is filtered on
 _SCOPE_KEY = {t: "tenant_id" for t in TENANT_SCOPED_TABLES} | {"tenants": "id"}
 
+def _resolves_to_cte(table_node: exp.Table) -> bool:
+    """
+    True if an enclosing WITH clause defines this name, i.e. the reference is
+    to a CTE in scope (mirrors SQL scoping; a CTE defined elsewhere in the
+    query does not hide a real table here).
+    """
+    if table_node.db or table_node.catalog:
+        return False
+    name = table_node.name.lower()
+    node = table_node.parent
+    while node is not None:
+        with_ = node.args.get("with_") if isinstance(node, exp.Query) else None
+        if with_ and any(c.alias_or_name.lower() == name for c in with_.expressions):
+            return True
+        node = node.parent
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Result type
 # ---------------------------------------------------------------------------
@@ -105,13 +123,16 @@ def verify_and_inject_ast(
     referenced_tables: dict[str, str] = {}  # alias/name → real table name
     real_table_nodes: list[exp.Table] = []
 
-    shadowing = cte_names & set(TABLE_COLUMNS)
+    shadowing = {
+        n for n in cte_names
+        if n in TABLE_COLUMNS or n.startswith(("sqlite_", "pragma_"))
+    }
     if shadowing:
-        errors.append(f"CTE name shadows a real table: {sorted(shadowing)}.")
+        errors.append(f"CTE name shadows a real or system table: {sorted(shadowing)}.")
 
     for table_node in parsed.find_all(exp.Table):
         table_name = table_node.name.lower()
-        if table_name in cte_names and not table_node.db:
+        if _resolves_to_cte(table_node):
             continue
         if table_node.db.lower() not in ("", "main") or table_node.catalog:
             errors.append(f"Schema-qualified table not allowed: '{table_node.sql(dialect='sqlite')}'.")
