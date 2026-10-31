@@ -4,8 +4,8 @@ Pytest suite for the Symbolic AST Verifier.
 Tests:
 1. DROP TABLE is blocked (read-only guard).
 2. Hallucinated columns trigger specific error feedback.
-3. tenant_id is deterministically injected into single-table queries.
-4. tenant_id is injected into JOIN queries for all tenant-scoped tables.
+3. Every table reference is replaced by a tenant-scoped derived table.
+4. Scoping applies in every scope (joins, subqueries) and to `tenants` via id.
 5. INSERT/UPDATE/DELETE are blocked.
 """
 
@@ -104,18 +104,26 @@ class TestTenantInjection:
         result = verify_and_inject_ast(sql, tenant_id=1)
         assert result.valid
         sql_lower = result.sql.lower()
-        # Both aliases should have tenant_id injected
-        assert "s.tenant_id = 1" in sql_lower
-        assert "a.tenant_id = 1" in sql_lower
+        # Both tables are replaced by tenant-scoped derived tables
+        assert "(select * from students where tenant_id = 1) as s" in sql_lower
+        assert "(select * from assessments where tenant_id = 1) as a" in sql_lower
 
-    def test_tenants_table_no_injection(self):
-        """The `tenants` table itself should NOT get tenant_id injected."""
+    def test_tenants_table_scoped_on_id(self):
+        """The `tenants` table is scoped to the caller's own row via id."""
         result = verify_and_inject_ast(
             "SELECT * FROM tenants", tenant_id=1
         )
         assert result.valid
-        # The tenants table doesn't have tenant_id column
-        assert "tenant_id" not in result.sql.lower()
+        assert "where id = 1" in result.sql.lower()
+
+    def test_subquery_is_scoped(self):
+        """Scalar subqueries get their own tenant scope (no cross-tenant AVG)."""
+        result = verify_and_inject_ast(
+            "SELECT name, (SELECT AVG(cgpa) FROM students) AS g FROM students",
+            tenant_id=1,
+        )
+        assert result.valid
+        assert result.sql.lower().count("where tenant_id = 1") == 2
 
 
 class TestSQLParseError:

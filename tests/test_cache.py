@@ -60,7 +60,7 @@ class TestParameterizedCache:
     def test_store_and_hit(self, cache):
         """Store a query and verify it hits on an identical query."""
         query = "Show students in 'CSE' with cgpa > 8.5"
-        sql = "SELECT * FROM students WHERE department = 'CSE' AND cgpa > 8.5 AND students.tenant_id = 1"
+        sql = "SELECT * FROM students WHERE department = 'CSE' AND cgpa > 8.5"
         cache.store(query, sql, tenant_id=1)
         assert cache.size == 1
 
@@ -75,7 +75,7 @@ class TestParameterizedCache:
         """
         # Store the first variant
         query1 = "Show students in 'CSE' with cgpa > 8.5"
-        sql1 = "SELECT * FROM students WHERE department = 'CSE' AND cgpa > 8.5 AND students.tenant_id = 1"
+        sql1 = "SELECT * FROM students WHERE department = 'CSE' AND cgpa > 8.5"
         cache.store(query1, sql1, tenant_id=1)
 
         # Lookup with a semantically similar but parametrically different query
@@ -109,6 +109,40 @@ class TestParameterizedCache:
 
         result_sql, hit = cache.lookup(query, tenant_id=2)
         assert hit is False
+
+    def test_unquoted_entity_change_is_a_miss(self, cache):
+        """A hard-coded literal the new question doesn't mention must not be reused."""
+        cache.store(
+            "Show students in CSE with cgpa > 8.5",
+            "SELECT * FROM students WHERE department = 'CSE' AND cgpa > 8.5",
+            tenant_id=1,
+        )
+        result_sql, hit = cache.lookup("Show students in ECE with cgpa > 9.0", tenant_id=1)
+        assert hit is False
+        assert result_sql is None
+
+    def test_tenant_literal_never_parameterised(self, cache):
+        """A param equal to the tenant id must not rebind the tenant predicate."""
+        cache.store(
+            "Show top 1 students by cgpa",
+            "SELECT * FROM students WHERE tenant_id = 1 ORDER BY cgpa DESC LIMIT 1",
+            tenant_id=1,
+        )
+        result_sql, hit = cache.lookup("Show top 2 students by cgpa", tenant_id=1)
+        assert hit is True
+        assert "tenant_id = 1" in result_sql
+        assert "LIMIT 2" in result_sql
+
+    def test_rebound_string_is_escaped(self, cache):
+        """Quoted params are bound as escaped SQL literals, not spliced as text."""
+        cache.store(
+            "Show students in 'CSE'",
+            "SELECT * FROM students WHERE department = 'CSE'",
+            tenant_id=1,
+        )
+        result_sql, hit = cache.lookup("""Show students in "x' OR '1'='1\"""", tenant_id=1)
+        assert hit is True
+        assert "'x'' OR ''1''=''1'" in result_sql
 
     def test_clear(self, cache):
         """Cache clear should remove all entries."""

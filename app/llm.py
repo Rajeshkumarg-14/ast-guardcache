@@ -44,7 +44,7 @@ Rules:
 - Use only tables and columns present in the provided schema.
 - Do NOT use aliases unless needed for self-joins.
 - Do NOT add LIMIT unless the user explicitly asks for it.
-- Do NOT include any tenant_id filters — those are injected automatically.
+- The user belongs to the tenant given below; only return that tenant's rows.
 """
 
 
@@ -60,6 +60,7 @@ class LLMResult:
     sql: str
     retries_used: int
     error: str | None = None
+    raw_sql: str = ""  # LLM output before AST tenant injection (cache input)
 
 
 def generate_sql(
@@ -96,6 +97,7 @@ def generate_sql(
             "role": "user",
             "content": (
                 f"Schema:\n{schema_ddl}\n\n"
+                f"Current tenant_id: {tenant_id}\n"
                 f"Question: {question}\n\n"
                 "Write a single SQLite SELECT query."
             ),
@@ -123,11 +125,11 @@ def generate_sql(
 
             # If no verifier, return raw
             if verify_fn is None:
-                return LLMResult(sql=raw_sql, retries_used=attempt)
+                return LLMResult(sql=raw_sql, retries_used=attempt, raw_sql=raw_sql)
 
             result = verify_fn(raw_sql, tenant_id)
             if result.valid:
-                return LLMResult(sql=result.sql, retries_used=attempt)
+                return LLMResult(sql=result.sql, retries_used=attempt, raw_sql=raw_sql)
 
             # Feed error back for correction
             last_error = result.error
@@ -209,11 +211,11 @@ def mock_generate_sql(
         raw_sql = _MOCK_RESPONSES[best_key]
 
     if verify_fn is None:
-        return LLMResult(sql=raw_sql, retries_used=0)
+        return LLMResult(sql=raw_sql, retries_used=0, raw_sql=raw_sql)
 
     result = verify_fn(raw_sql, tenant_id)
     if result.valid:
-        return LLMResult(sql=result.sql, retries_used=0)
+        return LLMResult(sql=result.sql, retries_used=0, raw_sql=raw_sql)
 
     return LLMResult(
         sql=raw_sql,

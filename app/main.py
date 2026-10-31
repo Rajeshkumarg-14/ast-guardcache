@@ -19,7 +19,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from app.database import get_connection
+from app.database import execute_sql
 from app.pipeline import Pipeline, PipelineResult
 
 # ---------------------------------------------------------------------------
@@ -79,14 +79,13 @@ class QueryResponse(BaseModel):
 @app.get("/health")
 async def health():
     """Healthcheck endpoint."""
-    conn = get_connection()
-    row = conn.execute("SELECT COUNT(*) AS cnt FROM tenants").fetchone()
-    return {"status": "healthy", "tenants_count": row[0] if row else 0}
+    rows = execute_sql("SELECT COUNT(*) AS cnt FROM tenants")
+    return {"status": "healthy", "tenants_count": rows[0]["cnt"] if rows else 0}
 
 
 @app.post("/api/query", response_model=QueryResponse)
-async def query(req: QueryRequest):
-    """Run the text-to-SQL pipeline."""
+def query(req: QueryRequest):
+    """Run the text-to-SQL pipeline (sync: FastAPI runs it in its threadpool)."""
     pipeline = get_pipeline()
     result: PipelineResult = pipeline.run(
         question=req.question,

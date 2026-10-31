@@ -29,7 +29,7 @@ class Settings:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
     # Retriever settings
-    RETRIEVER_TOP_K: int = 3
+    RETRIEVER_TOP_K: int = 4
     RRF_K: int = 60  # Reciprocal Rank Fusion constant
 
     # Cache settings

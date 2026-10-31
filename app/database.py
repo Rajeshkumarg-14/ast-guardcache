@@ -287,6 +287,8 @@ def get_connection() -> sqlite3.Connection:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")
         _init_schema(conn)
+        # Defence in depth: the shared connection can never write after seeding
+        conn.execute("PRAGMA query_only = ON;")
         _connection = conn
     return _connection
 
@@ -314,10 +316,33 @@ def execute_sql(sql: str, conn: sqlite3.Connection | None = None) -> list[dict[s
     """Execute a read-only SQL statement and return rows as list of dicts."""
     if conn is None:
         conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    columns = [desc[0] for desc in cur.description] if cur.description else []
-    return [dict(zip(columns, row)) for row in cur.fetchall()]
+    # One connection is shared across threads; serialise execute + fetch
+    with _db_lock:
+        cur = conn.cursor()
+        cur.execute(sql)
+        columns = [desc[0] for desc in cur.description] if cur.description else []
+        return [dict(zip(columns, row)) for row in cur.fetchall()]
+
+
+def tenant_only_connection(tenant_id: int) -> sqlite3.Connection:
+    """
+    Copy of the database containing only *tenant_id*'s rows.
+
+    Isolation oracle: a correctly scoped query must return the same result on
+    the full database as the unscoped query returns on this copy.
+    """
+    src = get_connection()
+    dst = sqlite3.connect(":memory:", check_same_thread=False)
+    with _db_lock:
+        src.backup(dst)
+    dst.execute("PRAGMA query_only = OFF;")
+    for table in TENANT_SCOPED_TABLES:
+        dst.execute(f"DELETE FROM {table} WHERE tenant_id != ?", (tenant_id,))
+    dst.execute("DELETE FROM tenants WHERE id != ?", (tenant_id,))
+    dst.commit()
+    dst.execute("PRAGMA query_only = ON;")
+    dst.row_factory = sqlite3.Row
+    return dst
 
 
 def get_full_schema_text() -> str:
