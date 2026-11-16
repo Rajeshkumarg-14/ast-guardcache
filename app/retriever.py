@@ -110,7 +110,7 @@ class HybridSchemaRetriever:
             tbl = self.table_names[idx]
             if tbl not in ordered_names:
                 ordered_names.append(tbl)
-        for tbl in selected:
+        for tbl in sorted(selected):  # sorted: set order varies between processes
             if tbl not in ordered_names:
                 ordered_names.append(tbl)
 

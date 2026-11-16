@@ -40,8 +40,7 @@ QUESTIONS = [
 ]
 
 
-def _canon(rows):
-    return sorted(repr(tuple(r.values())) for r in rows)
+from app.database import canon_rows as _canon  # noqa: E402
 
 
 async def _fire(base: str, n: int, concurrency: int):

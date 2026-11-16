@@ -1,0 +1,6 @@
+Mode,Exec Accuracy %,Tenant Leak Rate %,Cache Hit Ratio %,Avg Latency ms,P95 Latency ms,Cache Hit Latency ms,Avg DDL Tables,Avg AST Retries
+Zero-Shot,89.5,5.3,0.0,1847.9,3253.6,-,10.0,0.00
+Hybrid RAG,89.5,5.3,0.0,1598.2,2133.6,-,5.7,0.00
+RAG + Re-print,89.5,5.3,0.0,1530.6,2193.0,-,5.7,0.00
+RAG + AST,94.7,0.0,0.0,1447.0,2095.9,-,5.7,0.00
+AST-GuardCache,94.7,0.0,15.8,1242.1,2026.1,31.7,5.7,0.00

@@ -1,0 +1,117 @@
+{
+ "logs": [
+  "qwen2.5-coder-1.5b_run1",
+  "qwen2.5-coder-1.5b_run2",
+  "qwen2.5-coder-1.5b_run3",
+  "qwen2.5-coder-7b_run1",
+  "qwen2.5-coder-7b_run2",
+  "qwen2.5-coder-7b_run3",
+  "qwen3.5-4b_run1"
+ ],
+ "end_to_end": {
+  "base": {
+   "requests": 343
+  },
+  "repeat": {
+   "requests": 105,
+   "hits": 91,
+   "hits_correct": 85,
+   "false_hits": 0,
+   "hits_leaked": 0
+  },
+  "paraphrase": {
+   "requests": 70,
+   "hits": 11,
+   "hits_correct": 9,
+   "false_hits": 0,
+   "hits_leaked": 0
+  },
+  "near_miss": {
+   "requests": 63
+  },
+  "repeated_const": {
+   "requests": 28,
+   "hits": 14,
+   "hits_correct": 8,
+   "false_hits": 0,
+   "hits_leaked": 0
+  },
+  "adversarial": {
+   "requests": 105
+  }
+ },
+ "sweep": {
+  "tau=0.80": {
+   "hits": 165,
+   "hits:repeat": 91,
+   "hits_correct": 130,
+   "wrong_hits": 35,
+   "wrong:repeat": 6,
+   "false_hits": 21,
+   "hits:base": 14,
+   "wrong:base": 14,
+   "hits:paraphrase": 39,
+   "wrong:paraphrase": 2,
+   "hits:near_miss": 7,
+   "wrong:near_miss": 7,
+   "hits:repeated_const": 14,
+   "wrong:repeated_const": 6,
+   "entries": 512
+  },
+  "tau=0.84": {
+   "hits": 123,
+   "hits:repeat": 91,
+   "hits_correct": 109,
+   "wrong_hits": 14,
+   "wrong:repeat": 6,
+   "hits:paraphrase": 18,
+   "wrong:paraphrase": 2,
+   "hits:repeated_const": 14,
+   "wrong:repeated_const": 6,
+   "entries": 554
+  },
+  "tau=0.88": {
+   "hits": 116,
+   "hits:repeat": 91,
+   "hits_correct": 102,
+   "wrong_hits": 14,
+   "wrong:repeat": 6,
+   "hits:paraphrase": 11,
+   "wrong:paraphrase": 2,
+   "hits:repeated_const": 14,
+   "wrong:repeated_const": 6,
+   "entries": 561
+  },
+  "tau=0.92": {
+   "hits": 109,
+   "hits:repeat": 91,
+   "hits_correct": 97,
+   "wrong_hits": 12,
+   "wrong:repeat": 6,
+   "hits:repeated_const": 14,
+   "wrong:repeated_const": 6,
+   "entries": 566,
+   "hits:paraphrase": 4
+  },
+  "tau=0.96": {
+   "hits": 105,
+   "hits:repeat": 91,
+   "hits_correct": 93,
+   "wrong_hits": 12,
+   "wrong:repeat": 6,
+   "hits:repeated_const": 14,
+   "wrong:repeated_const": 6,
+   "entries": 570
+  },
+  "exact match": {
+   "hits": 105,
+   "hits:repeat": 91,
+   "hits_correct": 93,
+   "wrong_hits": 12,
+   "wrong:repeat": 6,
+   "hits:repeated_const": 14,
+   "wrong:repeated_const": 6,
+   "entries": 570
+  }
+ }
+}

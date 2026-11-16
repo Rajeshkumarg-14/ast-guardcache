@@ -1,0 +1,30 @@
+{
+  "started_utc": "2026-11-13T06:02:25+00:00",
+  "model": "qwen2.5-coder:7b",
+  "endpoint": "http://127.0.0.1:11434/v1",
+  "temperature": 0.0,
+  "max_output_tokens": 2048,
+  "python": "3.13.13",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "packages": {
+    "sqlglot": "30.26.0",
+    "sentence-transformers": "6.2.0",
+    "rank-bm25": "0.2.2",
+    "openai": "3.41.0",
+    "torch": "2.15.0"
+  },
+  "embedding_model": "all-MiniLM-L6-v2",
+  "embedding_device": "cpu",
+  "ollama_version": "0.40.15",
+  "model_details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "qwen2",
+    "families": [
+      "qwen2"
+    ],
+    "parameter_size": "7.6B",
+    "quantization_level": "Q4_K_M"
+  },
+  "model_digest": "dae161e27b0e90dd1856c8bb3209201fd6736d8eb66298e75ed87571486f4364"
+}

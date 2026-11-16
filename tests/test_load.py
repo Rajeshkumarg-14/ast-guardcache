@@ -22,8 +22,7 @@ QUESTIONS = [
 ]
 
 
-def _canon(rows):
-    return sorted(repr(tuple(r.values())) for r in rows)
+from app.database import canon_rows as _canon  # noqa: E402
 
 
 def test_concurrent_pipeline_no_errors_no_leaks():

@@ -1,0 +1,28 @@
+cosine similarity, all-MiniLM-L6-v2
+  raw questions, different constants:   0.827
+  masked: 'Show assessments with score > __PARAM_0__' vs 'Show assessments with score < __PARAM_0__': 0.987
+  masked: 'Show the top __PARAM_0__ students by cgpa' vs 'Show the bottom __PARAM_0__ students by cgpa': 0.947
+  normalised text of the benchmark's repeated questions:
+    Q13 vs Q14: identical = True
+    Q13 vs Q15: identical = True
+    Q16 vs Q17: identical = True
+qwen2.5-coder-7b.jsonl:
+  retrieval: 73 requests, gold tables missing in 0; tables per prompt mean 5.7 (min 4, max 6)
+  verifier time per request: median 2.08 ms, 95th percentile 3.58 ms, max 5.15 ms (n=38)
+  cache hits: n=3, mean 23.9 ms, range 16.7-32.9 ms
+qwen3.5-4b.jsonl:
+  retrieval: 73 requests, gold tables missing in 0; tables per prompt mean 5.7 (min 4, max 6)
+  verifier time per request: median 1.91 ms, 95th percentile 3.84 ms, max 4.70 ms (n=38)
+  cache hits: n=3, mean 17.8 ms, range 14.4-19.8 ms
+  empty model output: [('zero_shot', 9, 'length'), ('hybrid_rag', 9, 'length'), ('hybrid_rag', 13, 'length'), ('rag_normalize', 6, 'length'), ('rag_normalize', 9, 'length'), ('rag_normalize', 13, 'length')]
+qwen2.5-coder-1.5b.jsonl:
+  retrieval: 73 requests, gold tables missing in 0; tables per prompt mean 5.7 (min 4, max 6)
+  verifier time per request: median 2.26 ms, 95th percentile 4.41 ms, max 5.16 ms (n=38)
+  cache hits: n=3, mean 23.5 ms, range 17.8-29.2 ms
+BIRD dev gold queries: 1534
+  with a JOIN: 1140
+  with an outer join: 1
+  with a nested SELECT: 124
+  starting with WITH (CTE): 9
+  with a window function: 5
+  with UNION/INTERSECT/EXCEPT: 3

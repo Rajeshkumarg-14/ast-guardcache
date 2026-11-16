@@ -1,0 +1,38 @@
+{
+  "started_utc": "2026-11-13T10:59:12+00:00",
+  "model": "qwen2.5-coder-7b-16k:latest",
+  "endpoint": "http://127.0.0.1:11434/v1",
+  "temperature": 0.0,
+  "max_output_tokens": 2048,
+  "python": "3.13.13",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "packages": {
+    "sqlglot": "30.26.0",
+    "sentence-transformers": "6.2.0",
+    "rank-bm25": "0.2.2",
+    "openai": "3.41.0",
+    "torch": "2.15.0"
+  },
+  "embedding_model": "all-MiniLM-L6-v2",
+  "wide_schema": true,
+  "modes": [
+    "zero_shot",
+    "hybrid_rag",
+    "ast_guardcache"
+  ],
+  "questions": 102,
+  "embedding_device": "cpu",
+  "ollama_version": "0.40.16",
+  "model_details": {
+    "parent_model": "qwen2.5-coder:7b",
+    "format": "gguf",
+    "family": "qwen2",
+    "families": [
+      "qwen2"
+    ],
+    "parameter_size": "7.6B",
+    "quantization_level": "Q4_K_M",
+    "runner": "llamacpp"
+  },
+  "model_digest": "642ce44382006e331e6f274313eec0ab663e15a68a8e6e462a81970418cde893"
+}

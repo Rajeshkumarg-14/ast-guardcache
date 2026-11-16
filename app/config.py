@@ -20,9 +20,12 @@ class Settings:
     """Application-wide settings sourced from environment variables."""
 
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    # Any OpenAI-compatible endpoint works, e.g. Ollama: http://127.0.0.1:11434/v1
+    OPENROUTER_BASE_URL: str = os.getenv(
+        "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
+    )
     OPENROUTER_MODEL: str = os.getenv(
-        "OPENROUTER_MODEL", "qwen/qwen-2.5-coder-32b-instruct"
+        "OPENROUTER_MODEL", "cohere/north-mini-code:free"
     )
 
     APP_ENV: str = os.getenv("APP_ENV", "development")

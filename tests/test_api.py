@@ -97,7 +97,9 @@ class TestQueryEndpoint:
             },
         )
         data = resp.json()
-        assert data.get("error") is None or data["error"] is None
+        assert data["error"] is None
+        # Tenant 1 has 5 students, the database 8: the count must be scoped
+        assert data["execution_rows"] == [{"total_students": 5}]
 
     def test_query_zero_shot_mode(self, client):
         resp = client.post(

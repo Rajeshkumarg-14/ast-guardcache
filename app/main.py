@@ -15,10 +15,11 @@ import subprocess
 import sys
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
+from app.config import settings
 from app.database import execute_sql
 from app.pipeline import Pipeline, PipelineResult
 
@@ -29,8 +30,8 @@ from app.pipeline import Pipeline, PipelineResult
 app = FastAPI(
     title="AST-GuardCache",
     description=(
-        "Schema-Aware Hybrid RAG and Parameterized Semantic Caching "
-        "Architecture for Low-Latency, Zero-Hallucination Text-to-SQL"
+        "Schema-aware hybrid retrieval and parameterized template caching "
+        "for tenant-isolated text-to-SQL (research prototype)"
     ),
     version="0.1.0",
 )
@@ -52,9 +53,19 @@ def get_pipeline() -> Pipeline:
 
 
 class QueryRequest(BaseModel):
+    """
+    Demo request. ``tenant_id`` is taken from the body because this prototype
+    has no authentication; a deployment must take it from the authenticated
+    session instead, never from the client.
+    """
+
     question: str
     tenant_id: int = 1
     mode: str = "ast_guardcache"
+
+
+# Baseline modes execute unverified SQL; they exist for the ablation only
+_VERIFIED_MODES = {"rag_ast", "ast_guardcache"}
 
 
 class QueryResponse(BaseModel):
@@ -86,6 +97,8 @@ async def health():
 @app.post("/api/query", response_model=QueryResponse)
 def query(req: QueryRequest):
     """Run the text-to-SQL pipeline (sync: FastAPI runs it in its threadpool)."""
+    if settings.APP_ENV == "production" and req.mode not in _VERIFIED_MODES:
+        raise HTTPException(status_code=403, detail="Unverified modes are disabled in production.")
     pipeline = get_pipeline()
     result: PipelineResult = pipeline.run(
         question=req.question,
@@ -201,7 +214,7 @@ _DASHBOARD_HTML = """\
             </h1>
             <p class="mt-3 text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
                 Schema-Aware Hybrid RAG &amp; Parameterized Semantic Caching for
-                <span class="text-white font-semibold">Low-Latency, Zero-Hallucination</span> Text-to-SQL
+                <span class="text-white font-semibold">Tenant-Isolated</span> Text-to-SQL
             </p>
         </header>
 

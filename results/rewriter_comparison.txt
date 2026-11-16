@@ -1,0 +1,15 @@
+2100 generated (query, tenant) cases; 24 excluded (oracle not executable); 2076 compared (1812 distinct)
+  isolated      ours  2076   baseline  1169
+  leaked        ours     0   baseline    65
+  engine error  ours     0   baseline   722
+  rejected      ours     0   baseline   120
+baseline rejections caused by a set operation: 120
+cases not isolated, by query feature (a case can have several):
+  single scope       1054 cases   ours    0   baseline    0
+  subquery            776 cases   ours    0   baseline  741
+  table used twice    292 cases   ours    0   baseline  217
+  outer join          166 cases   ours    0   baseline  126
+  set operation       158 cases   ours    0   baseline  158
+  CTE                  94 cases   ours    0   baseline   94
+rewrite time per query (ours): median 1.60 ms, p95 3.54 ms, max 6.39 ms, n=2076
+rewrite time per query (baseline): median 2.89 ms, p95 6.43 ms, max 12.19 ms, n=2076

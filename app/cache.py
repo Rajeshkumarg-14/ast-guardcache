@@ -138,20 +138,56 @@ def _literal_equals(node: exp.Literal, param: str) -> bool:
         return False
 
 
-def _to_template(sql: str, params: list[str]) -> str:
-    """Replace literals matching *params* with typed placeholders (:s0 / :n1)."""
+def _to_template(sql: str, params: list[str]) -> str | None:
+    """
+    Replace literals matching *params* with typed placeholders (:s0 / :n1).
+
+    Every occurrence of a parameter value is replaced, so a constant the model
+    used twice is rebound twice. Returns None (do not cache) when two
+    parameters share a value, because a literal could then belong to either;
+    when a parameter does not occur in the SQL at all; or when one parameter
+    matches literals in different roles (``year = 1 ... LIMIT 1``), because
+    equal values need not be the same constant.
+    """
+    if any(
+        _same_value(params[i], params[j])
+        for i in range(len(params)) for j in range(i + 1, len(params))
+    ):
+        return None
     tree = sqlglot.parse_one(sql, read="sqlite")
-    unused = list(range(len(params)))
+    roles: dict[int, set] = {}
     for node in list(tree.find_all(exp.Literal)):
         if _is_tenant_literal(node):
             continue
-        for i in unused:
-            if _literal_equals(node, params[i]):
+        for i, param in enumerate(params):
+            if _literal_equals(node, param):
+                roles.setdefault(i, set()).add(_literal_role(node))
                 kind = "s" if node.is_string else "n"
                 node.replace(exp.Placeholder(this=f"{kind}{i}"))
-                unused.remove(i)
                 break
+    if len(roles) != len(params):
+        return None  # the SQL ignores a constant of the question: rebinding would too
+    if any(len(r) > 1 for r in roles.values()):
+        return None  # one value in two roles: not provably the same constant
     return tree.sql(dialect="sqlite")
+
+
+def _literal_role(node: exp.Literal) -> tuple[str, str | None]:
+    """Where a literal sits: the kind of its parent and the column it is compared with."""
+    parent = node.parent
+    column = None
+    if isinstance(parent, exp.Binary):
+        column = next(
+            (side.name.lower() for side in (parent.left, parent.right) if isinstance(side, exp.Column)), None
+        )
+    return type(parent).__name__, column
+
+
+def _same_value(a: str, b: str) -> bool:
+    try:
+        return float(a) == float(b)
+    except ValueError:
+        return a == b
 
 
 def _bind_template(template: str, params: list[str], query: str) -> str | None:
@@ -159,8 +195,9 @@ def _bind_template(template: str, params: list[str], query: str) -> str | None:
     Bind *params* into *template* as escaped literals.
 
     Returns None (treat as a miss) if a numeric slot gets a non-number, or if a
-    hard-coded string literal in the template is not mentioned in *query*
-    (e.g. a cached ``department = 'CSE'`` reused for a question about ECE).
+    hard-coded string literal in the template is not mentioned in *query* as a
+    whole word (e.g. a cached ``department = 'CSE'`` reused for a question
+    about ECE, or ``status = 'active'`` for a question about inactive rows).
     """
     if any(ch < " " for p in params for ch in p):
         return None  # control characters (e.g. NUL) never come from real questions
@@ -177,7 +214,9 @@ def _bind_template(template: str, params: list[str], query: str) -> str | None:
 
     q = query.casefold()
     for node in tree.find_all(exp.Literal):
-        if node.is_string and node.this.strip("%").casefold() not in q:
+        # Whole-word match: 'active' must not be grounded by "inactive"
+        word = re.escape(node.this.strip("%").casefold())
+        if node.is_string and not re.search(rf"(?<!\w){word}(?!\w)", q):
             return None
     return tree.sql(dialect="sqlite")
 
@@ -270,6 +309,8 @@ class ParameterizedSemanticCache:
         try:
             sql_template = _to_template(sql, params)
         except sqlglot.errors.ParseError:
+            return
+        if sql_template is None:
             return
         # Dedupe: a miss on a stored shape (e.g. grounding rejected it) must
         # not grow the cache without bound
