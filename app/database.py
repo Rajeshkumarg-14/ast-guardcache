@@ -422,11 +422,18 @@ def unique_columns(names: list[str]) -> list[str]:
     may share a name (``SELECT s.name, ct.name``); as dict keys the second would
     overwrite the first and a value would be lost before any comparison.
     """
-    seen: dict[str, int] = {}
-    out = []
+    taken = set(names)  # never generate a name that a real column already has (x, x, x_2)
+    used: set[str] = set()
+    out: list[str] = []
     for name in names:
-        seen[name] = seen.get(name, 0) + 1
-        out.append(name if seen[name] == 1 else f"{name}_{seen[name]}")
+        new, k = name, 2
+        while new in used:
+            new = f"{name}_{k}"
+            k += 1
+            if new in taken:
+                new = name  # skip suffixes that belong to real columns
+        used.add(new)
+        out.append(new)
     return out
 
 

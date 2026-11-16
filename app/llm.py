@@ -128,6 +128,9 @@ def generate_sql(
     verify_ms = 0.0
     prompt_tokens = 0
     for attempt in range(1 + max_retries):
+        # Only the endpoint call is guarded: provider failures (no credits, rate limit,
+        # network) are not model errors and are surfaced. Exceptions from handling the
+        # model's SQL (parsing, verification) propagate as themselves.
         try:
             _throttle()
             response = client.chat.completions.create(
@@ -139,49 +142,47 @@ def generate_sql(
             raw_sql = (response.choices[0].message.content or "").strip()
             finish = response.choices[0].finish_reason or ""
             prompt_tokens += getattr(response.usage, "prompt_tokens", 0) or 0
-
-            # Strip markdown code fences if present
-            if raw_sql.startswith("```"):
-                lines = raw_sql.split("\n")
-                raw_sql = "\n".join(
-                    line for line in lines
-                    if not line.strip().startswith("```")
-                ).strip()
-
-            # If no verifier, return raw
-            if verify_fn is None:
-                return LLMResult(
-                    sql=raw_sql, retries_used=attempt, raw_sql=raw_sql,
-                    finish_reason=finish, prompt_tokens=prompt_tokens,
-                )
-
-            t0 = time.perf_counter()
-            result = verify_fn(raw_sql, tenant_id)
-            verify_ms += (time.perf_counter() - t0) * 1000
-            if result.valid:
-                return LLMResult(
-                    sql=result.sql, retries_used=attempt, raw_sql=raw_sql,
-                    finish_reason=finish, verify_ms=verify_ms, prompt_tokens=prompt_tokens,
-                )
-
-            # Feed error back for correction
-            last_error = result.error
-            messages.append({"role": "assistant", "content": raw_sql})
-            messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        f"The SQL you generated has an error:\n{last_error}\n\n"
-                        "Please fix the query and output ONLY the corrected SQL."
-                    ),
-                }
-            )
-
         except Exception as exc:
-            # Provider failures (no credits, rate limit, network) are not model
-            # errors: surface them instead of scoring them as rejected SQL.
             if attempt == max_retries:
                 raise RuntimeError(f"{API_ERROR_PREFIX}: {exc}") from exc
+            continue
+
+        # Strip markdown code fences if present
+        if raw_sql.startswith("```"):
+            lines = raw_sql.split("\n")
+            raw_sql = "\n".join(
+                line for line in lines
+                if not line.strip().startswith("```")
+            ).strip()
+
+        # If no verifier, return raw
+        if verify_fn is None:
+            return LLMResult(
+                sql=raw_sql, retries_used=attempt, raw_sql=raw_sql,
+                finish_reason=finish, prompt_tokens=prompt_tokens,
+            )
+
+        t0 = time.perf_counter()
+        result = verify_fn(raw_sql, tenant_id)
+        verify_ms += (time.perf_counter() - t0) * 1000
+        if result.valid:
+            return LLMResult(
+                sql=result.sql, retries_used=attempt, raw_sql=raw_sql,
+                finish_reason=finish, verify_ms=verify_ms, prompt_tokens=prompt_tokens,
+            )
+
+        # Feed error back for correction
+        last_error = result.error
+        messages.append({"role": "assistant", "content": raw_sql})
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"The SQL you generated has an error:\n{last_error}\n\n"
+                    "Please fix the query and output ONLY the corrected SQL."
+                ),
+            }
+        )
 
     return LLMResult(
         sql="",

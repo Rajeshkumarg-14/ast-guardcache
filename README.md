@@ -125,7 +125,7 @@ docker compose -f docker-compose.research.yml stop
 
 # Re-score logs from their recorded SQL after a change to the scoring code (no model calls).
 # Result sets are compared order-insensitively and floats to 12 significant digits
-# (app.database.canon_rows); results/rescore_report.txt records that this changed no flag.
+# (app.database.canon_rows); results/rescore_report.txt records the result (7 Qwen3.5 accuracy flags corrected for empty output).
 uv run python -X utf8 scripts/rescore_logs.py results/qwen*_run*.jsonl
 WIDE_SCHEMA=1 uv run python -X utf8 scripts/rescore_logs.py results/wide_*.jsonl
 

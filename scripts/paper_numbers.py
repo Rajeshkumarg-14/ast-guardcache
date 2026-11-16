@@ -103,6 +103,8 @@ def bird() -> dict:
             o: dict(Counter(f for r in rs if r[key] == o for f in r["features"])) for o in ("leaked", "error", "rejected")}
     # cases in which the unscoped gold query differs from the oracle, i.e. that can reveal a missing filter
     out["sensitive_cases"] = sum(r.get("unscoped_differs") is True for r in rs)
+    out["insensitive_cases"] = sum(r.get("unscoped_differs") is False for r in rs)
+    out["sensitivity_undetermined"] = sum(r.get("unscoped_differs") is None for r in rs)
     out["sensitive_by_tenant"] = dict(Counter(r["tenant"] for r in rs if r.get("unscoped_differs") is True))
     feats = Counter(f for r in rs if r["tenant"] == 1 for f in r["features"])
     out["query_features"] = dict(feats)

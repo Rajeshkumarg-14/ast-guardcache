@@ -267,6 +267,13 @@ class TestScoring:
         )[0]
         assert list(row) == ["name", "name_2"] and row["name"] != row["name_2"]
 
+    def test_generated_name_never_takes_a_real_column_name(self):
+        from app.database import execute_sql
+
+        # x, x, x_2: naming the second x "x_2" would overwrite the real x_2 and drop the count
+        row = execute_sql("SELECT 0 AS x, (SELECT COUNT(*) FROM students) AS x, 0 AS x_2")[0]
+        assert len(row) == 3 and sorted(row.values()) == [0, 0, row["x_3"]] and row["x_3"] > 0
+
     def test_row_matching_is_a_true_matching(self):
         from scripts.run_benchmark import check_execution_accuracy
 
