@@ -46,7 +46,7 @@ def architecture(path: str) -> None:
             ax.text((a[0] + b[0]) / 2 + dx, (a[1] + b[1]) / 2 + dy, label, ha="center", va="center", fontsize=6)
 
     box(1, 86, 27, 12, "Question Q\n+ tenant t\n(from session)", "#eeeeee", True)
-    box(36, 86, 27, 12, "Literal stripper\nQ → Q_norm, P")
+    box(36, 86, 27, 12, "Literal stripper\nQ → Q', P")
     box(71, 86, 28, 12, "Template cache\n(per tenant)", "#eeeeee", True)
 
     box(1, 56, 38, 13, "Rebind P into cached\ntemplate; literal\ngrounding check")
