@@ -1,0 +1,29 @@
+100/1534 {'rewriter error': 78, 'engine error': 74, 'isolated': 48}
+200/1534 {'rewriter error': 86, 'engine error': 246, 'isolated': 68}
+300/1534 {'rewriter error': 86, 'engine error': 380, 'isolated': 134}
+400/1534 {'rewriter error': 86, 'engine error': 500, 'isolated': 214}
+500/1534 {'rewriter error': 86, 'engine error': 618, 'isolated': 296}
+600/1534 {'rewriter error': 88, 'engine error': 740, 'isolated': 372}
+700/1534 {'rewriter error': 96, 'engine error': 852, 'isolated': 452}
+800/1534 {'rewriter error': 96, 'engine error': 1028, 'isolated': 476}
+900/1534 {'rewriter error': 96, 'engine error': 1198, 'isolated': 506}
+1000/1534 {'rewriter error': 96, 'engine error': 1338, 'isolated': 566}
+1100/1534 {'rewriter error': 118, 'engine error': 1476, 'isolated': 606}
+1200/1534 {'rewriter error': 198, 'engine error': 1552, 'isolated': 650}
+1300/1534 {'rewriter error': 246, 'engine error': 1694, 'isolated': 660}
+1400/1534 {'rewriter error': 246, 'engine error': 1858, 'isolated': 696}
+1500/1534 {'rewriter error': 246, 'engine error': 2002, 'isolated': 752}
+BIRD: 1534 gold queries x 2 tenants = 3068 cases
+  isolated          760  (24.8%)
+  leaked              0  (0.0%)
+  engine error     2062  (67.2%)
+  rewriter error    246  (8.0%)
+  rejected            0  (0.0%)
+cases not isolated, by query feature (a case can have several):
+  single scope       2804 cases   pedro 2160
+  subquery            240 cases   pedro  124
+  table used twice    130 cases   pedro   86
+  CTE                  18 cases   pedro   18
+  set operation         6 cases   pedro    6
+  outer join            2 cases   pedro    2
+rewrite time per query (pedro, sqlglot 20.10.0): median 96.87 ms, p95 268.73 ms, n=3068

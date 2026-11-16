@@ -171,6 +171,27 @@ def meta() -> dict:
     return out
 
 
+def pedro() -> dict:
+    """Published rewriter of Pedro et al. (scripts/pedro_eval.py), with failure causes."""
+    out = {}
+    for name in ("generated", "bird"):
+        p = os.path.join(RES, f"pedro_{name}.jsonl")
+        if not os.path.exists(p):
+            continue
+        rs = [json.loads(line) for line in open(p, encoding="utf-8")]
+        s = json.load(open(os.path.join(RES, f"pedro_{name}.json"), encoding="utf-8"))
+        bad = [r for r in rs if r["outcome"] in ("engine error", "rewriter error")]
+        s["causes"] = {
+            "join_alias_dropped": sum("no such column" in (r.get("error") or "") for r in bad),
+            "parse_error": sum(r["outcome"] == "rewriter error" for r in bad),
+            "timeout": sum("interrupted" in (r.get("error") or "") for r in bad),
+            "other_engine_error": sum(r["outcome"] == "engine error" and "no such column" not in (r.get("error") or "")
+                                      and "interrupted" not in (r.get("error") or "") for r in bad),
+        }
+        out[name] = s
+    return out
+
+
 def main() -> None:
     N: dict = {"models": {}, "wide": {}}
     for key in MODELS:
@@ -189,6 +210,7 @@ def main() -> None:
         p = os.path.join(RES, name + ".json")
         N[name] = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
     N["bird"] = bird()
+    N["pedro"] = pedro()
     N["replay_pg"] = parse_table(os.path.join(RES, "replay_pg.txt"))
     N["pytest"] = pytest_summary(os.path.join(RES, "pytest_report.txt"))
     N["pytest_postgres"] = pytest_summary(os.path.join(RES, "pytest_postgres.txt"))

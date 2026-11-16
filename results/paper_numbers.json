@@ -1221,11 +1221,11 @@
       102
      ],
      "leak_qcats": {
-      "adversarial": 7,
-      "paraphrase": 1,
-      "repeat": 3,
-      "repeated_const": 2,
       "base": 8,
+      "adversarial": 7,
+      "repeat": 3,
+      "paraphrase": 1,
+      "repeated_const": 2,
       "near_miss": 1
      },
      "wrong_qids": [
@@ -1413,8 +1413,8 @@
       102
      ],
      "leak_qcats": {
-      "base": 6,
       "adversarial": 6,
+      "base": 6,
       "repeated_const": 2
      },
      "wrong_qids": [
@@ -1572,8 +1572,8 @@
       102
      ],
      "leak_qcats": {
-      "base": 6,
       "adversarial": 6,
+      "base": 6,
       "repeated_const": 2
      },
      "wrong_qids": [
@@ -1980,9 +1980,9 @@
     ],
     "leak_qcats": {
      "base": 12,
+     "repeat": 6,
      "adversarial": 7,
      "paraphrase": 1,
-     "repeat": 6,
      "repeated_const": 2,
      "near_miss": 2
     },
@@ -2196,8 +2196,8 @@
      102
     ],
     "leak_qcats": {
-     "base": 6,
      "adversarial": 6,
+     "base": 6,
      "repeated_const": 2
     },
     "wrong_qids": [
@@ -2475,10 +2475,10 @@
      102
     ],
     "leak_qcats": {
-     "adversarial": 9,
-     "repeated_const": 2,
      "base": 6,
+     "adversarial": 9,
      "repeat": 1,
+     "repeated_const": 2,
      "near_miss": 1
     },
     "wrong_qids": [
@@ -3459,6 +3459,64 @@
    "table used twice": 65,
    "CTE": 9,
    "set operation": 3
+  }
+ },
+ "pedro": {
+  "generated": {
+   "outcomes": {
+    "isolated": 1952,
+    "engine error": 124
+   },
+   "not_isolated_by_feature": {
+    "outer join": 72,
+    "table used twice": 20,
+    "single scope": 52
+   },
+   "feature_total": {
+    "single scope": 1054,
+    "subquery": 776,
+    "table used twice": 292,
+    "CTE": 94,
+    "set operation": 158,
+    "outer join": 166
+   },
+   "time_ms_median": 44.26610000007258,
+   "causes": {
+    "join_alias_dropped": 124,
+    "parse_error": 0,
+    "timeout": 0,
+    "other_engine_error": 0
+   }
+  },
+  "bird": {
+   "outcomes": {
+    "rewriter error": 246,
+    "engine error": 2062,
+    "isolated": 760
+   },
+   "not_isolated_by_feature": {
+    "single scope": 2160,
+    "subquery": 124,
+    "outer join": 2,
+    "table used twice": 86,
+    "CTE": 18,
+    "set operation": 6
+   },
+   "feature_total": {
+    "single scope": 2804,
+    "subquery": 240,
+    "outer join": 2,
+    "table used twice": 130,
+    "CTE": 18,
+    "set operation": 6
+   },
+   "time_ms_median": 96.87319999989086,
+   "causes": {
+    "join_alias_dropped": 2040,
+    "parse_error": 246,
+    "timeout": 2,
+    "other_engine_error": 20
+   }
   }
  },
  "replay_pg": {
