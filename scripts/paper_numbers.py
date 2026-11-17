@@ -176,7 +176,7 @@ def meta() -> dict:
 def pedro() -> dict:
     """Published rewriter of Pedro et al. (scripts/pedro_eval.py), with failure causes."""
     out = {}
-    for name in ("generated", "bird"):
+    for name in ("generated", "bird", "repaired_generated", "repaired_bird"):
         p = os.path.join(RES, f"pedro_{name}.jsonl")
         if not os.path.exists(p):
             continue

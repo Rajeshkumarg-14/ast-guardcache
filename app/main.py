@@ -123,6 +123,8 @@ def query(req: QueryRequest):
 @app.post("/api/benchmark")
 async def benchmark():
     """Trigger the ablation benchmark (mock LLM) and return summary."""
+    if settings.APP_ENV == "production":
+        raise HTTPException(status_code=403, detail="The benchmark endpoint is disabled in production.")
     try:
         proc = subprocess.run(
             [sys.executable, "scripts/run_benchmark.py", "--mock-llm"],

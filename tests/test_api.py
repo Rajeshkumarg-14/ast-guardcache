@@ -151,3 +151,18 @@ class TestDashboard:
         assert resp.status_code == 200
         assert "text/html" in resp.headers["content-type"]
         assert "AST-GuardCache" in resp.text
+
+
+class TestProductionMode:
+    """APP_ENV=production disables unverified modes and the benchmark endpoint."""
+
+    def test_unverified_mode_refused(self, client, monkeypatch):
+        from app.config import settings
+        monkeypatch.setattr(settings, "APP_ENV", "production")
+        r = client.post("/api/query", json={"question": "List students", "tenant_id": 1, "mode": "zero_shot"})
+        assert r.status_code == 403
+
+    def test_benchmark_endpoint_refused(self, client, monkeypatch):
+        from app.config import settings
+        monkeypatch.setattr(settings, "APP_ENV", "production")
+        assert client.post("/api/benchmark").status_code == 403

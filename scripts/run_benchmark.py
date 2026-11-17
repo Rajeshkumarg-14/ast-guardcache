@@ -100,6 +100,8 @@ def run_benchmark(use_mock: bool = True, log_path: str | None = None, modes: lis
     """Execute the full benchmark suite."""
     global MODES
     MODES = modes or MODES
+    from datetime import datetime, timezone
+    started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     # Fresh database with the benchmark-only seed rows
     reset_connection(seed_sql())
 
@@ -169,7 +171,7 @@ def run_benchmark(use_mock: bool = True, log_path: str | None = None, modes: lis
     # Aggregate metrics per mode
     # ---------------------------------------------------------------------------
     if log_path:
-        _write_run_metadata(log_path, use_mock)
+        _write_run_metadata(log_path, use_mock, started)
         with open(log_path, "w", encoding="utf-8") as f:
             for mode in MODES:
                 for e in all_results[mode]:
@@ -236,8 +238,9 @@ def run_benchmark(use_mock: bool = True, log_path: str | None = None, modes: lis
     print(f"[OK] PDF chart saved to: {pdf_path}\n")
 
 
-def _write_run_metadata(log_path: str, use_mock: bool) -> None:
+def _write_run_metadata(log_path: str, use_mock: bool, started: str) -> None:
     """Record what produced a log: model, endpoint, library versions, time."""
+    import hashlib
     import platform
     from datetime import datetime, timezone
     from importlib.metadata import version
@@ -247,7 +250,11 @@ def _write_run_metadata(log_path: str, use_mock: bool) -> None:
     from app.config import settings
 
     meta = {
-        "started_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "started_utc": started,
+        "finished_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        # fingerprint of the questions, gold SQL and categories this run used
+        "workload_sha256": hashlib.sha256(
+            json.dumps(BENCHMARK_QUERIES, sort_keys=True, default=str).encode()).hexdigest(),
         "model": "mock" if use_mock else settings.OPENROUTER_MODEL,
         "endpoint": None if use_mock else settings.OPENROUTER_BASE_URL,
         "temperature": 0.0,

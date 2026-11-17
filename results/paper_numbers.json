@@ -63,9 +63,9 @@
       102
      ],
      "leak_qcats": {
-      "repeat": 1,
       "base": 3,
-      "adversarial": 8
+      "adversarial": 8,
+      "repeat": 1
      },
      "wrong_qids": [
       9,
@@ -1221,12 +1221,12 @@
       102
      ],
      "leak_qcats": {
-      "near_miss": 1,
-      "base": 8,
-      "adversarial": 7,
       "repeat": 3,
-      "paraphrase": 1,
-      "repeated_const": 2
+      "adversarial": 7,
+      "repeated_const": 2,
+      "base": 8,
+      "near_miss": 1,
+      "paraphrase": 1
      },
      "wrong_qids": [
       7,
@@ -1980,11 +1980,11 @@
     ],
     "leak_qcats": {
      "repeat": 6,
-     "near_miss": 2,
-     "base": 12,
      "adversarial": 7,
-     "paraphrase": 1,
-     "repeated_const": 2
+     "repeated_const": 2,
+     "base": 12,
+     "near_miss": 2,
+     "paraphrase": 1
     },
     "wrong_qids": [
      1,
@@ -2478,8 +2478,8 @@
      "base": 6,
      "adversarial": 9,
      "repeated_const": 2,
-     "repeat": 1,
-     "near_miss": 1
+     "near_miss": 1,
+     "repeat": 1
     },
     "wrong_qids": [
      9,
@@ -3519,6 +3519,54 @@
     "timeout": 2,
     "other_engine_error": 20
    }
+  },
+  "repaired_generated": {
+   "outcomes": {
+    "isolated": 2076
+   },
+   "not_isolated_by_feature": {},
+   "feature_total": {
+    "single scope": 1054,
+    "subquery": 776,
+    "table used twice": 292,
+    "CTE": 94,
+    "set operation": 158,
+    "outer join": 166
+   },
+   "time_ms_median": 33.74150000308873,
+   "causes": {
+    "join_alias_dropped": 0,
+    "parse_error": 0,
+    "timeout": 0,
+    "other_engine_error": 0
+   }
+  },
+  "repaired_bird": {
+   "outcomes": {
+    "isolated": 3060,
+    "engine error": 8
+   },
+   "not_isolated_by_feature": {
+    "subquery": 4,
+    "table used twice": 5,
+    "single scope": 2,
+    "CTE": 2
+   },
+   "feature_total": {
+    "single scope": 2804,
+    "subquery": 240,
+    "outer join": 2,
+    "table used twice": 130,
+    "CTE": 18,
+    "set operation": 6
+   },
+   "time_ms_median": 119.25124999834225,
+   "causes": {
+    "join_alias_dropped": 0,
+    "parse_error": 0,
+    "timeout": 8,
+    "other_engine_error": 0
+   }
   }
  },
  "replay_pg": {
@@ -3553,8 +3601,8 @@
   }
  },
  "pytest": {
-  "line": "4948 passed, 74 skipped in 221.59s (0:03:41)",
-  "passed": 4948,
+  "line": "4950 passed, 74 skipped in 199.24s (0:03:19)",
+  "passed": 4950,
   "skipped": 74,
   "skips": {
    "AmbiguousColumn": 26,
@@ -3563,7 +3611,7 @@
   }
  },
  "pytest_postgres": {
-  "line": "1741 passed, 50 skipped in 49.85s",
+  "line": "1741 passed, 50 skipped in 70.45s (0:01:10)",
   "passed": 1741,
   "skipped": 50,
   "skips": {

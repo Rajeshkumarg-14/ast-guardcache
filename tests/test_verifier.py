@@ -131,8 +131,7 @@ class TestSQLParseError:
 
     def test_garbage_sql(self):
         result = verify_and_inject_ast("THIS IS NOT SQL", tenant_id=1)
-        # sqlglot may parse this or error — either way it shouldn't crash
-        assert isinstance(result.valid, bool)
+        assert not result.valid and result.error
 
 
 class TestBirdFalseRejections:
