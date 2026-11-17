@@ -1,0 +1,24 @@
+{
+ "outcomes": {
+  "rewriter error": 246,
+  "engine error": 2062,
+  "isolated": 760
+ },
+ "not_isolated_by_feature": {
+  "single scope": 2160,
+  "subquery": 124,
+  "outer join": 2,
+  "table used twice": 86,
+  "CTE": 18,
+  "set operation": 6
+ },
+ "feature_total": {
+  "single scope": 2804,
+  "subquery": 240,
+  "outer join": 2,
+  "table used twice": 130,
+  "CTE": 18,
+  "set operation": 6
+ },
+ "time_ms_median": 96.87319999989086
+}

@@ -6,7 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
+    mem_limit: 2g  # MiniLM + torch on CPU
+    mem_reservation: 512m
     env_file:
       - .env
     environment:

@@ -1,0 +1,22 @@
+100/1534 {'isolated': 198, 'error': 2}
+200/1534 {'isolated': 395, 'error': 5}
+300/1534 {'isolated': 593, 'error': 7}
+400/1534 {'isolated': 793, 'error': 7}
+500/1534 {'isolated': 993, 'error': 7}
+600/1534 {'isolated': 1191, 'error': 9}
+700/1534 {'isolated': 1391, 'error': 9}
+800/1534 {'isolated': 1590, 'error': 10}
+900/1534 {'isolated': 1790, 'error': 10}
+1000/1534 {'isolated': 1990, 'error': 10}
+1100/1534 {'isolated': 2190, 'error': 10}
+1200/1534 {'isolated': 2389, 'error': 11}
+1300/1534 {'isolated': 2589, 'error': 11}
+1400/1534 {'isolated': 2789, 'error': 11}
+1500/1534 {'isolated': 2989, 'error': 11}
+
+1534 gold queries x 2 tenants = 3068 cases
+  isolated   3057  (99.6%)
+  leaked        0  (0.0%)
+  rejected      0  (0.0%)
+  error        11  (0.4%)
+rejection reasons:

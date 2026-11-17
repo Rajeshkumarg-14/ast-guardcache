@@ -8,6 +8,7 @@ data across two tenants so cross-tenant data leakage can be empirically tested.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import threading
 from typing import Any
@@ -182,6 +183,88 @@ TABLE_COLUMNS: dict[str, list[str]] = {
     ],
 }
 
+# ---------------------------------------------------------------------------
+# Opt-in wide schema (WIDE_SCHEMA=1): 50 distractor tables, for the retrieval
+# experiments only. Off by default; the tables stay empty.
+# ---------------------------------------------------------------------------
+
+# table -> extra columns (after id, tenant_id); "x_id" REFERENCES x(id)
+_WIDE_SPEC: dict[str, str] = {
+    "departments": "name TEXT, code TEXT, head_name TEXT, budget REAL, created_at TEXT",
+    "employees": "department_id INTEGER REFERENCES departments(id), full_name TEXT, work_email TEXT, job_title TEXT, hire_date TEXT, employment_type TEXT, status TEXT",
+    "employee_contracts": "employee_id INTEGER REFERENCES employees(id), contract_type TEXT, start_date TEXT, end_date TEXT, signed_at TEXT",
+    "payroll_runs": "period_start TEXT, period_end TEXT, status TEXT, total_gross REAL, total_net REAL, run_at TEXT",
+    "payslips": "payroll_run_id INTEGER REFERENCES payroll_runs(id), employee_id INTEGER REFERENCES employees(id), gross_pay REAL, net_pay REAL, tax_withheld REAL, currency TEXT",
+    "salary_bands": "title TEXT, min_salary REAL, max_salary REAL, currency TEXT, grade TEXT",
+    "leave_requests": "employee_id INTEGER REFERENCES employees(id), leave_type TEXT, start_date TEXT, end_date TEXT, status TEXT, approved_by TEXT",
+    "attendance_records": "employee_id INTEGER REFERENCES employees(id), work_date TEXT, check_in TEXT, check_out TEXT, hours REAL",
+    "performance_reviews": "employee_id INTEGER REFERENCES employees(id), reviewer TEXT, period TEXT, rating INTEGER, comments TEXT",
+    "job_postings": "department_id INTEGER REFERENCES departments(id), title TEXT, location TEXT, salary_min REAL, salary_max REAL, status TEXT, posted_at TEXT",
+    "job_applicants": "job_posting_id INTEGER REFERENCES job_postings(id), full_name TEXT, email TEXT, stage TEXT, applied_at TEXT",
+    "interviews": "applicant_id INTEGER REFERENCES job_applicants(id), interviewer TEXT, scheduled_at TEXT, outcome TEXT, notes TEXT",
+    "warehouses": "name TEXT, city TEXT, country TEXT, capacity INTEGER, manager TEXT",
+    "products": "sku TEXT, title TEXT, category TEXT, unit_price REAL, active INTEGER, created_at TEXT",
+    "inventory_items": "warehouse_id INTEGER REFERENCES warehouses(id), product_id INTEGER REFERENCES products(id), quantity INTEGER, reorder_level INTEGER, updated_at TEXT",
+    "suppliers": "company_name TEXT, contact_email TEXT, country TEXT, rating REAL, status TEXT",
+    "purchase_orders": "supplier_id INTEGER REFERENCES suppliers(id), order_date TEXT, status TEXT, total_amount REAL, currency TEXT",
+    "purchase_order_lines": "purchase_order_id INTEGER REFERENCES purchase_orders(id), product_id INTEGER REFERENCES products(id), quantity INTEGER, unit_cost REAL, received INTEGER",
+    "stock_movements": "inventory_item_id INTEGER REFERENCES inventory_items(id), movement_type TEXT, quantity INTEGER, reason TEXT, moved_at TEXT",
+    "shipments": "purchase_order_id INTEGER REFERENCES purchase_orders(id), carrier TEXT, tracking_code TEXT, status TEXT, shipped_at TEXT, delivered_at TEXT",
+    "customers": "company_name TEXT, contact_name TEXT, email TEXT, phone TEXT, segment TEXT, created_at TEXT",
+    "sales_orders": "customer_id INTEGER REFERENCES customers(id), order_date TEXT, status TEXT, total_amount REAL, currency TEXT",
+    "sales_order_lines": "sales_order_id INTEGER REFERENCES sales_orders(id), product_id INTEGER REFERENCES products(id), quantity INTEGER, unit_price REAL, discount REAL",
+    "quotes": "customer_id INTEGER REFERENCES customers(id), amount REAL, valid_until TEXT, status TEXT, created_at TEXT",
+    "leads": "source TEXT, company_name TEXT, contact_email TEXT, score INTEGER, status TEXT, created_at TEXT",
+    "opportunities": "lead_id INTEGER REFERENCES leads(id), stage TEXT, expected_value REAL, probability REAL, close_date TEXT",
+    "marketing_campaigns": "name TEXT, channel TEXT, budget REAL, start_date TEXT, end_date TEXT, status TEXT",
+    "campaign_responses": "campaign_id INTEGER REFERENCES marketing_campaigns(id), lead_id INTEGER REFERENCES leads(id), response_type TEXT, responded_at TEXT",
+    "support_tickets": "customer_id INTEGER REFERENCES customers(id), subject TEXT, priority TEXT, status TEXT, opened_at TEXT, closed_at TEXT",
+    "ticket_comments": "ticket_id INTEGER REFERENCES support_tickets(id), author TEXT, body TEXT, internal INTEGER, created_at TEXT",
+    "sla_policies": "name TEXT, priority TEXT, response_hours INTEGER, resolution_hours INTEGER, active INTEGER",
+    "knowledge_base_articles": "title TEXT, category TEXT, body TEXT, views INTEGER, published_at TEXT",
+    "customer_feedback": "customer_id INTEGER REFERENCES customers(id), rating INTEGER, comment TEXT, channel TEXT, submitted_at TEXT",
+    "expense_claims": "employee_id INTEGER REFERENCES employees(id), category TEXT, amount REAL, currency TEXT, status TEXT, submitted_at TEXT",
+    "vendor_payments": "supplier_id INTEGER REFERENCES suppliers(id), amount REAL, currency TEXT, method TEXT, paid_at TEXT",
+    "ledger_accounts": "code TEXT, name TEXT, account_type TEXT, balance REAL, currency TEXT",
+    "journal_entries": "ledger_account_id INTEGER REFERENCES ledger_accounts(id), debit REAL, credit REAL, memo TEXT, posted_at TEXT",
+    "tax_rates": "region TEXT, name TEXT, rate REAL, effective_from TEXT, active INTEGER",
+    "budgets": "department_id INTEGER REFERENCES departments(id), fiscal_year INTEGER, planned_amount REAL, spent_amount REAL, status TEXT",
+    "assets": "name TEXT, asset_tag TEXT, category TEXT, purchase_date TEXT, purchase_cost REAL, assigned_to TEXT",
+    "maintenance_logs": "asset_id INTEGER REFERENCES assets(id), technician TEXT, description TEXT, cost REAL, performed_at TEXT",
+    "projects": "department_id INTEGER REFERENCES departments(id), name TEXT, status TEXT, start_date TEXT, due_date TEXT, budget REAL",
+    "project_tasks": "project_id INTEGER REFERENCES projects(id), title TEXT, assignee TEXT, status TEXT, priority TEXT, due_date TEXT",
+    "timesheets": "employee_id INTEGER REFERENCES employees(id), project_id INTEGER REFERENCES projects(id), work_date TEXT, hours REAL, approved INTEGER",
+    "meeting_rooms": "name TEXT, building TEXT, floor INTEGER, capacity INTEGER, has_projector INTEGER",
+    "room_bookings": "room_id INTEGER REFERENCES meeting_rooms(id), booked_by TEXT, start_time TEXT, end_time TEXT, purpose TEXT",
+    "api_keys": "label TEXT, key_prefix TEXT, scopes TEXT, created_at TEXT, revoked_at TEXT",
+    "feature_flags": "flag_key TEXT, description TEXT, enabled INTEGER, rollout_percent INTEGER, updated_at TEXT",
+    "user_sessions": "user_email TEXT, ip_address TEXT, user_agent TEXT, started_at TEXT, ended_at TEXT",
+    "file_uploads": "uploaded_by TEXT, file_name TEXT, mime_type TEXT, size_bytes INTEGER, uploaded_at TEXT",
+}
+
+
+def _wide_tables() -> tuple[dict[str, str], dict[str, list[str]], dict[str, list[str]]]:
+    """DDL, columns and FK neighbours of the distractor tables."""
+    ddls, cols, fks = {}, {}, {}
+    for table, spec in _WIDE_SPEC.items():
+        parts = [c.strip() for c in spec.split(",")]
+        body = ",\n    ".join(
+            ["id          INTEGER PRIMARY KEY AUTOINCREMENT",
+             "tenant_id   INTEGER NOT NULL REFERENCES tenants(id)", *parts]
+        )
+        ddls[table] = f"\nCREATE TABLE IF NOT EXISTS {table} (\n    {body}\n);"
+        cols[table] = ["id", "tenant_id", *(p.split()[0] for p in parts)]
+        fks[table] = ["tenants", *(p.split("REFERENCES ")[1].split("(")[0] for p in parts if "REFERENCES" in p)]
+    return ddls, cols, fks
+
+
+WIDE_DDLS, WIDE_COLUMNS, WIDE_FK_GRAPH = _wide_tables()
+
+if os.getenv("WIDE_SCHEMA") == "1":
+    TABLE_DDLS |= WIDE_DDLS
+    TABLE_COLUMNS |= WIDE_COLUMNS
+    FK_GRAPH |= WIDE_FK_GRAPH
+
 # Tables that carry tenant_id (all except the tenants table itself)
 TENANT_SCOPED_TABLES: set[str] = {
     t for t, cols in TABLE_COLUMNS.items() if "tenant_id" in cols
@@ -273,6 +356,7 @@ INSERT INTO notification_queue (tenant_id, recipient, channel, subject, body, st
 
 _db_lock = threading.Lock()
 _connection: sqlite3.Connection | None = None
+_extra_sql = ""  # benchmark-only seed rows, see reset_connection()
 
 
 def get_connection() -> sqlite3.Connection:
@@ -287,17 +371,25 @@ def get_connection() -> sqlite3.Connection:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")
         _init_schema(conn)
+        # Defence in depth: the shared connection can never write after seeding
+        conn.execute("PRAGMA query_only = ON;")
         _connection = conn
     return _connection
 
 
-def reset_connection() -> sqlite3.Connection:
-    """Tear down and recreate the database (useful for tests)."""
-    global _connection
+def reset_connection(extra_sql: str = "") -> sqlite3.Connection:
+    """
+    Tear down and recreate the database (useful for tests).
+
+    *extra_sql* is run after the base seed; the benchmark uses it to add rows.
+    The default database (and every test) uses the base seed only.
+    """
+    global _connection, _extra_sql
     with _db_lock:
         if _connection is not None:
             _connection.close()
         _connection = None
+        _extra_sql = extra_sql
     return get_connection()
 
 
@@ -307,6 +399,8 @@ def _init_schema(conn: sqlite3.Connection) -> None:
     for ddl in TABLE_DDLS.values():
         cur.executescript(ddl)
     cur.executescript(_SEED_SQL)
+    if _extra_sql:
+        cur.executescript(_extra_sql)
     conn.commit()
 
 
@@ -314,10 +408,70 @@ def execute_sql(sql: str, conn: sqlite3.Connection | None = None) -> list[dict[s
     """Execute a read-only SQL statement and return rows as list of dicts."""
     if conn is None:
         conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    columns = [desc[0] for desc in cur.description] if cur.description else []
-    return [dict(zip(columns, row)) for row in cur.fetchall()]
+    # One connection is shared across threads; serialise execute + fetch
+    with _db_lock:
+        cur = conn.cursor()
+        cur.execute(sql)
+        columns = unique_columns([desc[0] for desc in cur.description] if cur.description else [])
+        return [dict(zip(columns, row)) for row in cur.fetchall()]
+
+
+def unique_columns(names: list[str]) -> list[str]:
+    """
+    Result column names made unique (name, name_2, ...). Two projected columns
+    may share a name (``SELECT s.name, ct.name``); as dict keys the second would
+    overwrite the first and a value would be lost before any comparison.
+    """
+    taken = set(names)  # never generate a name that a real column already has (x, x, x_2)
+    used: set[str] = set()
+    out: list[str] = []
+    for name in names:
+        new, k = name, 2
+        while new in used:
+            new = f"{name}_{k}"
+            k += 1
+            if new in taken:
+                new = name  # skip suffixes that belong to real columns
+        used.add(new)
+        out.append(new)
+    return out
+
+
+def norm_value(v: Any) -> Any:
+    """
+    Floats are compared to 12 significant digits: SUM/AVG over the same rows can
+    differ in the last digits when the engine visits the rows in another order
+    (e.g. 76.635 vs 76.63500000000002), which is not a different result.
+    """
+    return float(f"{v:.12g}") if isinstance(v, float) else v
+
+
+def canon_rows(rows: list) -> list[str]:
+    """Order-insensitive, float-tolerant form of a result set (rows as dicts or tuples)."""
+    return sorted(
+        repr(tuple(norm_value(v) for v in (r.values() if isinstance(r, dict) else r))) for r in rows
+    )
+
+
+def tenant_only_connection(tenant_id: int) -> sqlite3.Connection:
+    """
+    Copy of the database containing only *tenant_id*'s rows.
+
+    Isolation oracle: a correctly scoped query must return the same result on
+    the full database as the unscoped query returns on this copy.
+    """
+    src = get_connection()
+    dst = sqlite3.connect(":memory:", check_same_thread=False)
+    with _db_lock:
+        src.backup(dst)
+    dst.execute("PRAGMA query_only = OFF;")
+    for table in TENANT_SCOPED_TABLES:
+        dst.execute(f"DELETE FROM {table} WHERE tenant_id != ?", (tenant_id,))
+    dst.execute("DELETE FROM tenants WHERE id != ?", (tenant_id,))
+    dst.commit()
+    dst.execute("PRAGMA query_only = ON;")
+    dst.row_factory = sqlite3.Row
+    return dst
 
 
 def get_full_schema_text() -> str:

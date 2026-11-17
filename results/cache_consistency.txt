@@ -1,0 +1,10 @@
+qwen2.5-coder-7b_run1.jsonl: 102 requests, 17 logged hits, 0 differences
+qwen2.5-coder-7b_run2.jsonl: 102 requests, 17 logged hits, 0 differences
+qwen2.5-coder-7b_run3.jsonl: 102 requests, 17 logged hits, 0 differences
+qwen2.5-coder-1.5b_run1.jsonl: 102 requests, 16 logged hits, 0 differences
+qwen2.5-coder-1.5b_run2.jsonl: 102 requests, 16 logged hits, 0 differences
+qwen2.5-coder-1.5b_run3.jsonl: 102 requests, 16 logged hits, 0 differences
+qwen3.5-4b_run1.jsonl: 102 requests, 17 logged hits, 0 differences
+wide_qwen2.5-coder-1.5b.jsonl: 102 requests, 17 logged hits, 0 differences
+wide_qwen2.5-coder-7b.jsonl: 102 requests, 17 logged hits, 0 differences
+total differences: 0

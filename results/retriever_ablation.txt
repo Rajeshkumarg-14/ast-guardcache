@@ -1,0 +1,23 @@
+102 questions; recall = share whose gold tables are all retrieved; tables = mean number of tables in the prompt
+
+10 tables
+  method      K=2: recall  tables   K=4: recall  tables   K=6: recall  tables
+  bm25               83.3     2.0          98.0     4.0         100.0     6.0
+  dense              87.3     2.0          98.0     4.0          98.0     6.0
+  rrf                86.3     2.0          98.0     4.0         100.0     6.0
+  bm25_fk           100.0     3.9         100.0     5.3         100.0     6.4
+  dense_fk          100.0     4.1         100.0     5.9         100.0     7.2
+  rrf_fk            100.0     4.1         100.0     5.7         100.0     6.4
+
+60 tables
+  method      K=2: recall  tables   K=4: recall  tables   K=6: recall  tables
+  bm25               79.4     2.0          90.2     4.0          97.1     6.0
+  dense              84.3     2.0          93.1     4.0          98.0     6.0
+  rrf                82.4     2.0          96.1     4.0          97.1     6.0
+  bm25_fk            97.1     4.1          99.0     6.7         100.0     8.3
+  dense_fk           99.0     4.2          99.0     7.1         100.0     9.8
+  rrf_fk             99.0     4.3         100.0     6.7         100.0     9.0
+
+questions missed by rrf_fk at K=4:
+  10 tables: []
+  60 tables: []

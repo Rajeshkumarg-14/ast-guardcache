@@ -1,0 +1,7 @@
+342 distinct (SQL, tenant) cases from 7 logs
+
+config             isolated      leaked    rejected    db_error unparseable
+none                    286          43           0          13           0
+rls_only                329           0           0          13           0
+verifier_only           329           0           5           8           0
+verifier_rls            329           0           5           8           0

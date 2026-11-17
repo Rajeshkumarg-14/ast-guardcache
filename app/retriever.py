@@ -8,6 +8,8 @@ to guarantee JOIN-able context for the LLM.
 
 from __future__ import annotations
 
+import re
+
 import numpy as np
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
@@ -29,6 +31,13 @@ def _get_model() -> SentenceTransformer:
     return _model
 
 
+def _tokenize(text: str) -> list[str]:
+    """Split on non-alphanumerics (so notification_queue → notification, queue)
+    and drop a trailing 's' as a minimal plural fold."""
+    # ponytail: naive plural strip, swap for a real stemmer if vocab grows
+    return [w.rstrip("s") for w in re.findall(r"[a-z0-9]+", text.lower())]
+
+
 class HybridSchemaRetriever:
     """
     Retrieves the most relevant table DDLs for a natural-language question.
@@ -45,7 +54,7 @@ class HybridSchemaRetriever:
         self.ddl_strings: list[str] = [TABLE_DDLS[t] for t in self.table_names]
 
         # BM25 index
-        tokenized = [ddl.lower().split() for ddl in self.ddl_strings]
+        tokenized = [_tokenize(ddl) for ddl in self.ddl_strings]
         self.bm25 = BM25Okapi(tokenized)
 
         # Dense index
@@ -66,7 +75,7 @@ class HybridSchemaRetriever:
             top_k = settings.RETRIEVER_TOP_K
 
         # --- BM25 scores → ranks ------------------------------------------
-        bm25_scores = self.bm25.get_scores(question.lower().split())
+        bm25_scores = self.bm25.get_scores(_tokenize(question))
         bm25_order = np.argsort(-bm25_scores)  # descending
 
         # --- Dense scores → ranks -----------------------------------------
@@ -78,9 +87,10 @@ class HybridSchemaRetriever:
         # --- Reciprocal Rank Fusion ----------------------------------------
         k = settings.RRF_K
         rrf_scores: dict[int, float] = {}
-        for rank, idx in enumerate(bm25_order):
+        # 1-based ranks, as in Cormack et al. and paper Eq. (2)
+        for rank, idx in enumerate(bm25_order, start=1):
             rrf_scores[idx] = rrf_scores.get(idx, 0.0) + 1.0 / (k + rank)
-        for rank, idx in enumerate(dense_order):
+        for rank, idx in enumerate(dense_order, start=1):
             rrf_scores[idx] = rrf_scores.get(idx, 0.0) + 1.0 / (k + rank)
 
         sorted_indices = sorted(rrf_scores, key=lambda i: rrf_scores[i], reverse=True)
@@ -100,7 +110,7 @@ class HybridSchemaRetriever:
             tbl = self.table_names[idx]
             if tbl not in ordered_names:
                 ordered_names.append(tbl)
-        for tbl in selected:
+        for tbl in sorted(selected):  # sorted: set order varies between processes
             if tbl not in ordered_names:
                 ordered_names.append(tbl)
 

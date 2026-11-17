@@ -8,6 +8,7 @@ is fed back to the LLM for up to ``max_retries`` additional attempts.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 from openai import OpenAI
@@ -19,6 +20,21 @@ from app.config import settings
 # ---------------------------------------------------------------------------
 
 _client: OpenAI | None = None
+_last_call = 0.0
+
+# OpenRouter caps ":free" models at 20 requests/minute
+# ponytail: process-wide spacing, fine for the sequential benchmark; a shared
+# limiter would be needed for concurrent live traffic on a free model.
+_FREE_MIN_INTERVAL_S = 3.1
+
+API_ERROR_PREFIX = "LLM API error"
+
+
+def _throttle() -> None:
+    global _last_call
+    if settings.OPENROUTER_MODEL.endswith(":free"):
+        time.sleep(max(0.0, _last_call + _FREE_MIN_INTERVAL_S - time.monotonic()))
+    _last_call = time.monotonic()
 
 
 def _get_client() -> OpenAI:
@@ -44,7 +60,7 @@ Rules:
 - Use only tables and columns present in the provided schema.
 - Do NOT use aliases unless needed for self-joins.
 - Do NOT add LIMIT unless the user explicitly asks for it.
-- Do NOT include any tenant_id filters — those are injected automatically.
+- The user belongs to the tenant given below; only return that tenant's rows.
 """
 
 
@@ -60,6 +76,10 @@ class LLMResult:
     sql: str
     retries_used: int
     error: str | None = None
+    raw_sql: str = ""  # LLM output before AST tenant injection (cache input)
+    finish_reason: str = ""  # of the last completion ("length" = output limit hit)
+    verify_ms: float = 0.0  # time spent in the AST verifier across attempts
+    prompt_tokens: int = 0  # summed over attempts, as reported by the endpoint
 
 
 def generate_sql(
@@ -96,6 +116,7 @@ def generate_sql(
             "role": "user",
             "content": (
                 f"Schema:\n{schema_ddl}\n\n"
+                f"Current tenant_id: {tenant_id}\n"
                 f"Question: {question}\n\n"
                 "Write a single SQLite SELECT query."
             ),
@@ -103,54 +124,73 @@ def generate_sql(
     ]
 
     last_error: str | None = None
+    finish = ""
+    verify_ms = 0.0
+    prompt_tokens = 0
     for attempt in range(1 + max_retries):
+        # Only the endpoint call is guarded: provider failures (no credits, rate limit,
+        # network) are not model errors and are surfaced. Exceptions from handling the
+        # model's SQL (parsing, verification) propagate as themselves.
         try:
+            _throttle()
             response = client.chat.completions.create(
                 model=settings.OPENROUTER_MODEL,
                 messages=messages,
                 temperature=0.0,
-                max_tokens=512,
+                max_tokens=2048,  # room for hidden reasoning tokens on reasoning models
             )
-            raw_sql = response.choices[0].message.content.strip()
-
-            # Strip markdown code fences if present
-            if raw_sql.startswith("```"):
-                lines = raw_sql.split("\n")
-                raw_sql = "\n".join(
-                    line for line in lines
-                    if not line.strip().startswith("```")
-                ).strip()
-
-            # If no verifier, return raw
-            if verify_fn is None:
-                return LLMResult(sql=raw_sql, retries_used=attempt)
-
-            result = verify_fn(raw_sql, tenant_id)
-            if result.valid:
-                return LLMResult(sql=result.sql, retries_used=attempt)
-
-            # Feed error back for correction
-            last_error = result.error
-            messages.append({"role": "assistant", "content": raw_sql})
-            messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        f"The SQL you generated has an error:\n{last_error}\n\n"
-                        "Please fix the query and output ONLY the corrected SQL."
-                    ),
-                }
-            )
-
+            raw_sql = (response.choices[0].message.content or "").strip()
+            finish = response.choices[0].finish_reason or ""
+            prompt_tokens += getattr(response.usage, "prompt_tokens", 0) or 0
         except Exception as exc:
-            last_error = str(exc)
             if attempt == max_retries:
-                break
+                raise RuntimeError(f"{API_ERROR_PREFIX}: {exc}") from exc
+            continue
+
+        # Strip markdown code fences if present
+        if raw_sql.startswith("```"):
+            lines = raw_sql.split("\n")
+            raw_sql = "\n".join(
+                line for line in lines
+                if not line.strip().startswith("```")
+            ).strip()
+
+        # If no verifier, return raw
+        if verify_fn is None:
+            return LLMResult(
+                sql=raw_sql, retries_used=attempt, raw_sql=raw_sql,
+                finish_reason=finish, prompt_tokens=prompt_tokens,
+            )
+
+        t0 = time.perf_counter()
+        result = verify_fn(raw_sql, tenant_id)
+        verify_ms += (time.perf_counter() - t0) * 1000
+        if result.valid:
+            return LLMResult(
+                sql=result.sql, retries_used=attempt, raw_sql=raw_sql,
+                finish_reason=finish, verify_ms=verify_ms, prompt_tokens=prompt_tokens,
+            )
+
+        # Feed error back for correction
+        last_error = result.error
+        messages.append({"role": "assistant", "content": raw_sql})
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"The SQL you generated has an error:\n{last_error}\n\n"
+                    "Please fix the query and output ONLY the corrected SQL."
+                ),
+            }
+        )
 
     return LLMResult(
         sql="",
         retries_used=max_retries,
         error=f"Failed after {max_retries + 1} attempts. Last error: {last_error}",
+        finish_reason=finish,
+        verify_ms=verify_ms,
+        prompt_tokens=prompt_tokens,
     )
 
 
@@ -209,11 +249,13 @@ def mock_generate_sql(
         raw_sql = _MOCK_RESPONSES[best_key]
 
     if verify_fn is None:
-        return LLMResult(sql=raw_sql, retries_used=0)
+        return LLMResult(sql=raw_sql, retries_used=0, raw_sql=raw_sql)
 
+    t0 = time.perf_counter()
     result = verify_fn(raw_sql, tenant_id)
+    verify_ms = (time.perf_counter() - t0) * 1000
     if result.valid:
-        return LLMResult(sql=result.sql, retries_used=0)
+        return LLMResult(sql=result.sql, retries_used=0, raw_sql=raw_sql, verify_ms=verify_ms)
 
     return LLMResult(
         sql=raw_sql,

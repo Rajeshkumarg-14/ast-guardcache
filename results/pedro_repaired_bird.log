@@ -1,0 +1,29 @@
+100/1534 {'isolated': 198, 'engine error': 2}
+200/1534 {'isolated': 397, 'engine error': 3}
+300/1534 {'isolated': 595, 'engine error': 5}
+400/1534 {'isolated': 795, 'engine error': 5}
+500/1534 {'isolated': 995, 'engine error': 5}
+600/1534 {'isolated': 1193, 'engine error': 7}
+700/1534 {'isolated': 1393, 'engine error': 7}
+800/1534 {'isolated': 1592, 'engine error': 8}
+900/1534 {'isolated': 1792, 'engine error': 8}
+1000/1534 {'isolated': 1992, 'engine error': 8}
+1100/1534 {'isolated': 2192, 'engine error': 8}
+1200/1534 {'isolated': 2392, 'engine error': 8}
+1300/1534 {'isolated': 2592, 'engine error': 8}
+1400/1534 {'isolated': 2792, 'engine error': 8}
+1500/1534 {'isolated': 2992, 'engine error': 8}
+BIRD: 1534 gold queries x 2 tenants = 3068 cases
+  isolated         3060  (99.7%)
+  leaked              0  (0.0%)
+  engine error        8  (0.3%)
+  rewriter error      0  (0.0%)
+  rejected            0  (0.0%)
+cases not isolated, by query feature (a case can have several):
+  single scope       2804 cases   pedro    2
+  subquery            240 cases   pedro    4
+  table used twice    130 cases   pedro    5
+  CTE                  18 cases   pedro    2
+  set operation         6 cases   pedro    0
+  outer join            2 cases   pedro    0
+rewrite time per query (pedro, sqlglot 20.10.0): median 119.25 ms, p95 366.59 ms, n=3068

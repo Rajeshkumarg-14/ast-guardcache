@@ -4,6 +4,7 @@ Pipeline Orchestrator — supports 4 ablation modes.
 Modes:
 - ``zero_shot``       : Full schema → LLM → raw execute (no RAG, no AST, no cache).
 - ``hybrid_rag``      : Pruned schema via retriever → LLM → raw execute.
+- ``rag_normalize``   : As hybrid_rag, but SQL is re-printed by sqlglot (ablation).
 - ``rag_ast``         : Pruned schema → LLM → AST verify + tenant inject → execute.
 - ``ast_guardcache``  : Cache check → pruned schema → LLM → AST verify → cache store → execute.
 """
@@ -14,8 +15,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+import sqlglot
+
 from app.cache import ParameterizedSemanticCache
-from app.database import execute_sql, get_full_schema_text
+from app.database import TABLE_DDLS, execute_sql, get_full_schema_text
 from app.llm import LLMResult, generate_sql, mock_generate_sql
 from app.retriever import HybridSchemaRetriever
 from app.verifier import verify_and_inject_ast
@@ -37,11 +40,15 @@ class PipelineResult:
     cache_hit: bool = False
     ast_retries: int = 0
     pruned_tables_count: int = 0
-    total_tables_count: int = 10
+    total_tables_count: int = len(TABLE_DDLS)
     latency_ms: float = 0.0
     error: str | None = None
     pruned_ddl: str = ""
     full_ddl: str = ""
+    retrieved_tables: list[str] = field(default_factory=list)
+    verify_ms: float = 0.0  # time spent in the AST verifier
+    finish_reason: str = ""  # of the model's last completion
+    prompt_tokens: int = 0  # summed over generation attempts
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +85,8 @@ class Pipeline:
                 self._run_zero_shot(result, question, tenant_id)
             elif mode == "hybrid_rag":
                 self._run_hybrid_rag(result, question, tenant_id)
+            elif mode == "rag_normalize":
+                self._run_hybrid_rag(result, question, tenant_id, normalize=True)
             elif mode == "rag_ast":
                 self._run_rag_ast(result, question, tenant_id)
             elif mode == "ast_guardcache":
@@ -97,13 +106,16 @@ class Pipeline:
     ) -> None:
         """Full schema, no RAG, no AST verification."""
         schema_ddl = get_full_schema_text()
-        result.pruned_tables_count = 10  # all tables
+        result.pruned_tables_count = len(TABLE_DDLS)  # all tables
         result.pruned_ddl = schema_ddl
 
         llm_result = self._call_llm(question, schema_ddl, tenant_id, verify=False)
         result.generated_sql = llm_result.sql
         result.verified_sql = llm_result.sql  # no verification
         result.ast_retries = llm_result.retries_used
+        result.finish_reason = llm_result.finish_reason
+        result.verify_ms += llm_result.verify_ms
+        result.prompt_tokens = llm_result.prompt_tokens
 
         if llm_result.error:
             result.error = llm_result.error
@@ -115,25 +127,44 @@ class Pipeline:
             result.error = f"Execution error: {exc}"
 
     def _run_hybrid_rag(
-        self, result: PipelineResult, question: str, tenant_id: int
+        self, result: PipelineResult, question: str, tenant_id: int,
+        normalize: bool = False,
     ) -> None:
-        """Pruned schema via RAG, no AST verification."""
+        """
+        Pruned schema via RAG, no AST verification.
+
+        ``normalize=True`` is the ablation that only parses and re-prints the
+        SQL with sqlglot (no guards, no tenant scoping), to separate syntax
+        repair from verification.
+        """
         table_names, ddl_strings = self.retriever.retrieve(question)
         schema_ddl = "\n".join(ddl_strings)
         result.pruned_tables_count = len(table_names)
+        result.retrieved_tables = list(table_names)
         result.pruned_ddl = schema_ddl
 
         llm_result = self._call_llm(question, schema_ddl, tenant_id, verify=False)
         result.generated_sql = llm_result.sql
         result.verified_sql = llm_result.sql
         result.ast_retries = llm_result.retries_used
+        result.finish_reason = llm_result.finish_reason
+        result.verify_ms += llm_result.verify_ms
+        result.prompt_tokens = llm_result.prompt_tokens
 
         if llm_result.error:
             result.error = llm_result.error
             return
 
+        if normalize:
+            try:
+                result.verified_sql = sqlglot.transpile(
+                    llm_result.sql, read="sqlite", write="sqlite"
+                )[0]
+            except sqlglot.errors.ParseError:
+                pass  # execute as-is; SQLite reports the error
+
         try:
-            result.execution_rows = execute_sql(llm_result.sql)
+            result.execution_rows = execute_sql(result.verified_sql)
         except Exception as exc:
             result.error = f"Execution error: {exc}"
 
@@ -144,11 +175,16 @@ class Pipeline:
         table_names, ddl_strings = self.retriever.retrieve(question)
         schema_ddl = "\n".join(ddl_strings)
         result.pruned_tables_count = len(table_names)
+        result.retrieved_tables = list(table_names)
         result.pruned_ddl = schema_ddl
 
         llm_result = self._call_llm(question, schema_ddl, tenant_id, verify=True)
-        result.generated_sql = llm_result.sql
+        # What the model wrote, before tenant scoping (verified_sql holds the rest)
+        result.generated_sql = llm_result.raw_sql or llm_result.sql
         result.ast_retries = llm_result.retries_used
+        result.finish_reason = llm_result.finish_reason
+        result.verify_ms += llm_result.verify_ms
+        result.prompt_tokens = llm_result.prompt_tokens
 
         if llm_result.error:
             result.error = llm_result.error
@@ -172,23 +208,35 @@ class Pipeline:
 
         if hit and cached_sql:
             result.generated_sql = cached_sql
-            result.verified_sql = cached_sql
-            try:
-                result.execution_rows = execute_sql(cached_sql)
-            except Exception as exc:
-                result.error = f"Execution error on cached SQL: {exc}"
-            return
+            # Rebound templates go through the same AST guard + tenant injection
+            t0 = time.perf_counter()
+            check = verify_and_inject_ast(cached_sql, tenant_id)
+            result.verify_ms += (time.perf_counter() - t0) * 1000
+            if check.valid:
+                result.verified_sql = check.sql
+                try:
+                    result.execution_rows = execute_sql(check.sql)
+                except Exception as exc:
+                    result.error = f"Execution error on cached SQL: {exc}"
+                return
+            # Rejected template: treat as a miss and regenerate (Algorithm 1)
+            result.cache_hit = False
 
         # 2. Hybrid RAG retrieval
         table_names, ddl_strings = self.retriever.retrieve(question)
         schema_ddl = "\n".join(ddl_strings)
         result.pruned_tables_count = len(table_names)
+        result.retrieved_tables = list(table_names)
         result.pruned_ddl = schema_ddl
 
         # 3. LLM generation with AST self-correction
         llm_result = self._call_llm(question, schema_ddl, tenant_id, verify=True)
-        result.generated_sql = llm_result.sql
+        # What the model wrote, before tenant scoping (verified_sql holds the rest)
+        result.generated_sql = llm_result.raw_sql or llm_result.sql
         result.ast_retries = llm_result.retries_used
+        result.finish_reason = llm_result.finish_reason
+        result.verify_ms += llm_result.verify_ms
+        result.prompt_tokens = llm_result.prompt_tokens
 
         if llm_result.error:
             result.error = llm_result.error
@@ -197,14 +245,15 @@ class Pipeline:
 
         result.verified_sql = llm_result.sql
 
-        # 4. Store in cache
-        self.cache.store(question, llm_result.sql, tenant_id)
-
-        # 5. Execute
+        # 4. Execute
         try:
             result.execution_rows = execute_sql(llm_result.sql)
         except Exception as exc:
             result.error = f"Execution error: {exc}"
+            return
+
+        # 5. Cache only SQL that verified and ran
+        self.cache.store(question, llm_result.raw_sql, tenant_id)
 
     # ----- Helpers ----------------------------------------------------------
 

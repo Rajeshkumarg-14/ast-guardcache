@@ -1,0 +1,7 @@
+64 distinct (SQL, tenant) cases from 3 logs
+
+config             isolated      leaked    rejected    db_error unparseable
+none                     57           2           0           5           0
+rls_only                 59           0           0           5           0
+verifier_only            59           0           1           4           0
+verifier_rls             59           0           1           4           0

@@ -1,0 +1,19 @@
+7 logs: qwen2.5-coder-1.5b_run1, qwen2.5-coder-1.5b_run2, qwen2.5-coder-1.5b_run3, qwen2.5-coder-7b_run1, qwen2.5-coder-7b_run2, qwen2.5-coder-7b_run3, qwen3.5-4b_run1
+
+end to end (AST-GuardCache configuration), summed over logs:
+  category        requests  hits  correct  false hits  leaked
+  base                 343     0        0           0       0
+  repeat               105    91       85           0       0
+  paraphrase            70    11        9           0       0
+  near_miss             63     0        0           0       0
+  repeated_const        28    14        8           0       0
+  adversarial          105     0        0           0       0
+
+offline replay of the RAG + AST SQL, summed over logs:
+  cache         hits  correct  wrong  false  hits by category (wrong)
+  tau=0.80       165      130     35     21  base 14 (14), repeat 91 (6), paraphrase 39 (2), near_miss 7 (7), repeated_const 14 (6)
+  tau=0.84       123      109     14      0  repeat 91 (6), paraphrase 18 (2), repeated_const 14 (6)
+  tau=0.88       116      102     14      0  repeat 91 (6), paraphrase 11 (2), repeated_const 14 (6)
+  tau=0.92       109       97     12      0  repeat 91 (6), paraphrase 4 (0), repeated_const 14 (6)
+  tau=0.96       105       93     12      0  repeat 91 (6), repeated_const 14 (6)
+  exact match    105       93     12      0  repeat 91 (6), repeated_const 14 (6)

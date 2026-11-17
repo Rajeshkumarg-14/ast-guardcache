@@ -1,0 +1,50 @@
+{
+ "cases_built": 2100,
+ "excluded_not_executable": 24,
+ "compared": 2076,
+ "distinct_compared": 1812,
+ "outcomes": {
+  "ours": {
+   "isolated": 2076
+  },
+  "baseline": {
+   "isolated": 1169,
+   "engine error": 722,
+   "rejected": 120,
+   "leaked": 65
+  }
+ },
+ "baseline_setop_rejections": 120,
+ "feature_total": {
+  "single scope": 1054,
+  "subquery": 776,
+  "table used twice": 292,
+  "CTE": 94,
+  "set operation": 158,
+  "outer join": 166
+ },
+ "not_isolated_by_feature": {
+  "ours": {},
+  "baseline": {
+   "subquery": 741,
+   "CTE": 94,
+   "set operation": 158,
+   "table used twice": 217,
+   "outer join": 126
+  }
+ },
+ "time_ms": {
+  "ours": {
+   "median": 1.600399991730228,
+   "p95": 3.538199991453439,
+   "max": 6.390800001099706,
+   "n": 2076
+  },
+  "baseline": {
+   "median": 2.8910999972140417,
+   "p95": 6.431899993913248,
+   "max": 12.19359997776337,
+   "n": 2076
+  }
+ }
+}

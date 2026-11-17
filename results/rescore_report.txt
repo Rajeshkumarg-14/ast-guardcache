@@ -1,0 +1,20 @@
+== main logs
+qwen2.5-coder-7b_run1.jsonl: 510 rows, 0 flags changed
+qwen2.5-coder-7b_run2.jsonl: 510 rows, 0 flags changed
+qwen2.5-coder-7b_run3.jsonl: 510 rows, 0 flags changed
+qwen2.5-coder-1.5b_run1.jsonl: 510 rows, 0 flags changed
+qwen2.5-coder-1.5b_run2.jsonl: 510 rows, 0 flags changed
+qwen2.5-coder-1.5b_run3.jsonl: 510 rows, 0 flags changed
+qwen3.5-4b_run1.jsonl: 510 rows, 7 flags changed
+  Q93 zero_shot (adversarial): leaked False -> False, accurate True -> False
+  Q94 zero_shot (adversarial): leaked False -> False, accurate True -> False
+  Q95 zero_shot (adversarial): leaked False -> False, accurate True -> False
+  Q94 hybrid_rag (adversarial): leaked False -> False, accurate True -> False
+  Q95 hybrid_rag (adversarial): leaked False -> False, accurate True -> False
+  Q94 rag_normalize (adversarial): leaked False -> False, accurate True -> False
+  Q95 rag_normalize (adversarial): leaked False -> False, accurate True -> False
+total flags changed: 7
+== wide logs
+wide_qwen2.5-coder-1.5b.jsonl: 306 rows, 0 flags changed
+wide_qwen2.5-coder-7b.jsonl: 306 rows, 0 flags changed
+total flags changed: 0

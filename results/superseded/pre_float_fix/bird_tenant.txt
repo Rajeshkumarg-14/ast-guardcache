@@ -1,0 +1,37 @@
+100/1534 ours {'isolated': 198, 'error': 2} baseline {'isolated': 186, 'error': 12, 'leaked': 2}
+200/1534 ours {'isolated': 398, 'error': 2} baseline {'isolated': 374, 'error': 24, 'leaked': 2}
+300/1534 ours {'isolated': 597, 'error': 3} baseline {'isolated': 549, 'error': 49, 'leaked': 2}
+400/1534 ours {'isolated': 797, 'error': 3} baseline {'isolated': 737, 'error': 61, 'leaked': 2}
+500/1534 ours {'isolated': 997, 'error': 3} baseline {'isolated': 927, 'error': 69, 'leaked': 4}
+600/1534 ours {'isolated': 1195, 'error': 5} baseline {'isolated': 1095, 'error': 99, 'leaked': 6}
+700/1534 ours {'isolated': 1395, 'error': 5} baseline {'isolated': 1269, 'error': 117, 'leaked': 14}
+800/1534 ours {'isolated': 1594, 'error': 6} baseline {'isolated': 1453, 'error': 133, 'leaked': 14}
+900/1534 ours {'isolated': 1794, 'error': 6} baseline {'isolated': 1650, 'error': 135, 'leaked': 15}
+1000/1534 ours {'isolated': 1994, 'error': 6} baseline {'isolated': 1838, 'error': 147, 'leaked': 15}
+1100/1534 ours {'isolated': 2194, 'error': 6} baseline {'isolated': 2016, 'error': 165, 'leaked': 19}
+1200/1534 ours {'isolated': 2394, 'error': 6} baseline {'isolated': 2193, 'error': 187, 'leaked': 20}
+1300/1534 ours {'isolated': 2594, 'error': 6} baseline {'isolated': 2389, 'error': 191, 'leaked': 20}
+1400/1534 ours {'isolated': 2794, 'error': 6} baseline {'isolated': 2584, 'error': 191, 'leaked': 21, 'rejected': 4}
+1500/1534 ours {'isolated': 2994, 'error': 6} baseline {'isolated': 2776, 'error': 197, 'leaked': 23, 'rejected': 4}
+
+1534 gold queries x 2 tenants = 3068 cases
+[ours]
+  isolated   3062  (99.8%)
+  leaked        0  (0.0%)
+  rejected      0  (0.0%)
+  error         6  (0.2%)
+  rejection reasons:
+[baseline]
+  isolated   2840  (92.6%)
+  leaked       23  (0.7%)
+  rejected      4  (0.1%)
+  error       201  (6.6%)
+  rejection reasons:
+        4  baseline
+cases not isolated, by query feature (a case can have several):
+  single scope       2804 cases   ours    1   baseline    1
+  subquery            240 cases   ours    3   baseline  213
+  table used twice    130 cases   ours    5   baseline   93
+  CTE                  18 cases   ours    2   baseline   16
+  set operation         6 cases   ours    0   baseline    6
+  outer join            2 cases   ours    0   baseline    2

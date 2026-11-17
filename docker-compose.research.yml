@@ -1,0 +1,17 @@
+# Local research database for the Postgres / RLS experiments only.
+# Not for deployment. Start: docker compose -f docker-compose.research.yml up -d
+services:
+  research-postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: ${RESEARCH_PG_PASSWORD:-research}
+      POSTGRES_DB: guardcache
+    ports:
+      - "127.0.0.1:55432:5432"  # host-only: the test suite connects from the host
+    mem_limit: 1g
+    mem_reservation: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d guardcache"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
