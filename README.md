@@ -54,6 +54,7 @@ Code, tests, benchmark harness and result logs for the paper, plus an interactiv
 ### 1. Clone & Install
 
 ```bash
+git clone https://github.com/Rajeshkumarg-14/ast-guardcache.git
 cd ast-guardcache
 cp .env.example .env
 # Edit .env and add your OPENROUTER_API_KEY
@@ -209,6 +210,14 @@ the caller's rows).
 | `POST` | `/api/query` | Run text-to-SQL pipeline |
 | `POST` | `/api/benchmark` | Trigger ablation benchmark |
 | `GET` | `/` | Interactive dashboard |
+
+## Author and citation
+
+Rajesh Kumar G, Independent AI Systems Researcher, Root & Runtime Engineering
+(ORCID [0009-0003-7026-0529](https://orcid.org/0009-0003-7026-0529)).
+This repository holds the code, workload, logs and scripts behind the paper
+"AST-GuardCache: Schema-Aware Hybrid RAG and Parameterized Semantic Caching for
+Tenant-Isolated Text-to-SQL". Citation metadata is in `CITATION.cff`.
 
 ## License
 

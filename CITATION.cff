@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "AST-GuardCache: Schema-Aware Hybrid RAG and Parameterized Semantic Caching for Tenant-Isolated Text-to-SQL"
+authors:
+  - family-names: "Kumar G"
+    given-names: "Rajesh"
+    orcid: "https://orcid.org/0009-0003-7026-0529"
+    affiliation: "Root & Runtime Engineering"
+repository-code: "https://github.com/Rajeshkumarg-14/ast-guardcache"
+date-released: 2026-11-17
