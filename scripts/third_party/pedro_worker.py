@@ -2,7 +2,7 @@
 Runs the published rewriter of Pedro et al. unchanged, under the sqlglot version
 its artifact pins (20.10.0), in a separate interpreter:
 
-    uv run --no-project --with sqlglot==20.10.0 python -I scripts/third_party/pedro_worker.py
+    uv run --no-project --with sqlglot==20.10.0 --with typing_extensions==4.9.0 python -I scripts/third_party/pedro_worker.py [--repaired]
 
 Reads one JSON object per line on stdin: {"sql": ..., "clauses": [{"table_name", "where_clause"}]}.
 Writes one per line on stdout: {"sql": rewritten} or {"error": message}, plus "ms".
@@ -19,7 +19,10 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import sqlglot  # noqa: E402
-from p2sql_query_rewriter import QueryRewritter  # noqa: E402
+if "--repaired" in sys.argv:  # sensitivity copy with join-alias and dialect repairs
+    from p2sql_query_rewriter_repaired import QueryRewritter  # noqa: E402
+else:
+    from p2sql_query_rewriter import QueryRewritter  # noqa: E402
 
 assert sqlglot.__version__.startswith("20.10"), sqlglot.__version__
 

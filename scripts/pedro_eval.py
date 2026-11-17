@@ -5,7 +5,8 @@ differential oracle as our verifier, on the generated queries and on BIRD.
     uv run python -X utf8 scripts/pedro_eval.py generated --out results/pedro_generated
     uv run python -X utf8 scripts/pedro_eval.py bird --bird-dir <bird>/dev_20240627 --db-dir <bird_out> --out results/pedro_bird
 
-Their file runs unchanged, under the sqlglot version their artifact pins, in a
+Their file runs unchanged (or, with --repaired, a separately labelled copy that keeps join
+aliases and uses the SQLite dialect: scripts/third_party/p2sql_query_rewriter_repaired.py), under the sqlglot version their artifact pins, in a
 worker process (scripts/third_party/pedro_worker.py). For a fair comparison the
 query first passes our read-only and catalog checks, as for the outer-WHERE
 baseline; only the scoping step differs. The rewriter receives one clause
@@ -40,9 +41,11 @@ WORKER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "third_party",
 
 
 class Pedro:
-    def __init__(self) -> None:
+    def __init__(self, repaired: bool = False) -> None:
+        self.args = ["--repaired"] if repaired else []
         self.p = subprocess.Popen(
-            ["uv", "run", "--no-project", "--with", "sqlglot==20.10.0", "python", "-I", WORKER],
+            ["uv", "run", "--no-project", "--with", "sqlglot==20.10.0", "--with", "typing_extensions==4.9.0",
+             "python", "-I", WORKER, *self.args],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8",
         )
 
@@ -89,12 +92,12 @@ def report(out: str, stats: Counter, by_feature: Counter, feature_total: Counter
     print("\n".join(lines))
 
 
-def generated(out: str) -> None:
+def generated(out: str, repaired: bool = False) -> None:
     from scripts.compare_rewriters import generated_cases, rows
     from tests.test_scenarios import iso
 
     keys = {t: "tenant_id" for t in TENANT_SCOPED_TABLES} | {"tenants": "id"}
-    pedro = Pedro()
+    pedro = Pedro(repaired)
     stats, by_feature, feature_total, ms = Counter(), Counter(), Counter(), []
     excluded = 0
     log = open(out + ".jsonl", "w", encoding="utf-8")
@@ -117,11 +120,11 @@ def generated(out: str) -> None:
            f"generated queries: {sum(stats.values())} compared, {excluded} excluded (oracle not executable)")
 
 
-def bird(bird_dir: str, db_dir: str, out: str) -> None:
+def bird(bird_dir: str, db_dir: str, out: str, repaired: bool = False) -> None:
     from scripts import bird_tenant_eval as B
 
     items = json.load(open(os.path.join(bird_dir, "dev.json"), encoding="utf-8"))
-    pedro = Pedro()
+    pedro = Pedro(repaired)
     stats, by_feature, feature_total, ms = Counter(), Counter(), Counter(), []
     conns = {}
     log = open(out + ".jsonl", "w", encoding="utf-8")
@@ -161,5 +164,6 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--bird-dir")
     ap.add_argument("--db-dir")
+    ap.add_argument("--repaired", action="store_true", help="use the repaired copy (sensitivity run)")
     a = ap.parse_args()
-    generated(a.out) if a.which == "generated" else bird(a.bird_dir, a.db_dir, a.out)
+    generated(a.out, a.repaired) if a.which == "generated" else bird(a.bird_dir, a.db_dir, a.out, a.repaired)

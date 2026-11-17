@@ -1,0 +1,14 @@
+BIRD: 1534 gold queries x 2 tenants = 3068 cases
+  isolated         3060  (99.7%)
+  leaked              0  (0.0%)
+  engine error        8  (0.3%)
+  rewriter error      0  (0.0%)
+  rejected            0  (0.0%)
+cases not isolated, by query feature (a case can have several):
+  single scope       2804 cases   pedro    2
+  subquery            240 cases   pedro    4
+  table used twice    130 cases   pedro    5
+  CTE                  18 cases   pedro    2
+  set operation         6 cases   pedro    0
+  outer join            2 cases   pedro    0
+rewrite time per query (pedro, sqlglot 20.10.0): median 119.25 ms, p95 366.59 ms, n=3068

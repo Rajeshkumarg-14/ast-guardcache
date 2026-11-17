@@ -1,0 +1,15 @@
+{
+ "outcomes": {
+  "isolated": 2076
+ },
+ "not_isolated_by_feature": {},
+ "feature_total": {
+  "single scope": 1054,
+  "subquery": 776,
+  "table used twice": 292,
+  "CTE": 94,
+  "set operation": 158,
+  "outer join": 166
+ },
+ "time_ms_median": 33.74150000308873
+}

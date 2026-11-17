@@ -1,0 +1,14 @@
+generated queries: 2076 compared, 24 excluded (oracle not executable)
+  isolated         2076  (100.0%)
+  leaked              0  (0.0%)
+  engine error        0  (0.0%)
+  rewriter error      0  (0.0%)
+  rejected            0  (0.0%)
+cases not isolated, by query feature (a case can have several):
+  single scope       1054 cases   pedro    0
+  subquery            776 cases   pedro    0
+  table used twice    292 cases   pedro    0
+  outer join          166 cases   pedro    0
+  set operation       158 cases   pedro    0
+  CTE                  94 cases   pedro    0
+rewrite time per query (pedro, sqlglot 20.10.0): median 33.74 ms, p95 71.86 ms, n=2076

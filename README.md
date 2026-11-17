@@ -116,6 +116,10 @@ uv run python -X utf8 scripts/compare_rewriters.py       # ours vs outer-WHERE b
 uv run python -X utf8 scripts/retriever_ablation.py      # BM25 / dense / RRF / RRF+FK, 10 and 60 tables
 uv run python -X utf8 scripts/cache_sweep.py results/qwen2.5-coder-*_run*.jsonl results/qwen3.5-4b_run*.jsonl
 uv run python -X utf8 -u scripts/bird_tenant_eval.py <bird>/dev_20240627 --out <bird_out>   # ours and baseline
+# Published rewriter of Pedro et al. (unchanged, sqlglot 20.10.0), and a repaired copy (--repaired:
+# join aliases kept, SQLite dialect) as a sensitivity run; same oracle, same read-only/catalog checks
+uv run python -X utf8 scripts/pedro_eval.py generated [--repaired] --out results/pedro[_repaired]_generated
+uv run python -X utf8 scripts/pedro_eval.py bird [--repaired] --bird-dir <bird>/dev_20240627 --db-dir <bird_out> --out results/pedro[_repaired]_bird
 
 # PostgreSQL: verifier vs Row-Level Security vs both (local container, host-only port)
 docker compose -f docker-compose.research.yml up -d

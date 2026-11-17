@@ -2,7 +2,8 @@ p2sql_query_rewriter.py is RQ4/langshield-langchain/langshield/sql_query_rewrite
 artifact of R. Pedro, M. Coimbra, D. Castro, P. Carreira and N. Santos, "Prompt-to-SQL injections
 in LLM-integrated web applications: Risks and defenses" (ICSE 2025), https://zenodo.org/records/14743615
 (also https://github.com/rodrigo-pedro/P2SQL). The Zenodo record is published under the MIT License.
-The file is included unchanged.
+The file is included unchanged. p2sql_query_rewriter_repaired.py is a modified copy for a
+sensitivity experiment; its changes are marked "REPAIR" in the file.
 
 MIT License
 

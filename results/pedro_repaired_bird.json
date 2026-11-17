@@ -1,0 +1,21 @@
+{
+ "outcomes": {
+  "isolated": 3060,
+  "engine error": 8
+ },
+ "not_isolated_by_feature": {
+  "subquery": 4,
+  "table used twice": 5,
+  "single scope": 2,
+  "CTE": 2
+ },
+ "feature_total": {
+  "single scope": 2804,
+  "subquery": 240,
+  "outer join": 2,
+  "table used twice": 130,
+  "CTE": 18,
+  "set operation": 6
+ },
+ "time_ms_median": 119.25124999834225
+}
